@@ -1,5 +1,6 @@
 package view;
 
+import core.Database;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -9,12 +10,13 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import core.Database;
+import util.AudioManager;
 import util.Constants;
 
 public class LeaderboardView extends JPanel {
     
     private final ScreenManager screenManager;
+    private final AudioManager audioManager;
     private JButton backButton;
     private JLabel titleLabel;
     private JPanel leaderboardPanel;
@@ -26,6 +28,7 @@ public class LeaderboardView extends JPanel {
     
     public LeaderboardView(ScreenManager screenManager) {
         this.screenManager = screenManager;
+        this.audioManager = AudioManager.getInstance();
         this.database = Database.getInstance();
         loadEmptyLeaderboardImage();
         setLayout(null);
@@ -82,7 +85,10 @@ public class LeaderboardView extends JPanel {
     
     private void createComponents() {
         backButton = createCartoonButton("← KEMBALI", Constants.NEO_BLUE);
-        backButton.addActionListener(e -> screenManager.showMainMenu());
+        backButton.addActionListener(e -> {
+            audioManager.playSFX("assets/click.wav");
+            screenManager.showMainMenu();
+        });
         
         titleLabel = new JLabel("LEADERBOARD", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Arial Black", Font.BOLD, 48));

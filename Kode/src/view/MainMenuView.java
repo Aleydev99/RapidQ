@@ -12,12 +12,14 @@ import java.util.List;
 import java.util.Random;
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import util.AudioManager;
 import util.Constants;
 
 public class MainMenuView extends JPanel {
     
     private final ScreenManager screenManager;
     private final JFrame parentFrame;
+    private final AudioManager audioManager;
     private JButton startButton;
     private JButton leaderboardButton;
     private JButton exitButton;
@@ -35,6 +37,7 @@ public class MainMenuView extends JPanel {
     public MainMenuView(ScreenManager screenManager) {
         this.screenManager = screenManager;
         this.parentFrame = screenManager.getFrame();
+        this.audioManager = AudioManager.getInstance();
         setLayout(null);
         setOpaque(false);
         setPreferredSize(Constants.WINDOW_SIZE);
@@ -130,9 +133,18 @@ public class MainMenuView extends JPanel {
         exitButton = createCartoonButton("EXIT", Constants.NEO_RED);
         settingsButton = createIconButton(settingsImage, Constants.NEO_PURPLE);
         
-        exitButton.addActionListener(e -> showExitConfirmation());
-        leaderboardButton.addActionListener(e -> screenManager.showLeaderboard());
-        settingsButton.addActionListener(e -> screenManager.showSettings());
+        exitButton.addActionListener(e -> {
+            audioManager.playSFX("assets/click.wav");
+            showExitConfirmation();
+        });
+        leaderboardButton.addActionListener(e -> {
+            audioManager.playSFX("assets/click.wav");
+            screenManager.showLeaderboard();
+        });
+        settingsButton.addActionListener(e -> {
+            audioManager.playSFX("assets/click.wav");
+            screenManager.showSettings();
+        });
     }
     
     private void setupLayout() {

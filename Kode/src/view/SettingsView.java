@@ -4,12 +4,16 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import util.Constants;
+import util.AudioManager;
 
 public class SettingsView extends JPanel {
     
     private final ScreenManager screenManager;
     private final FullscreenManager fullscreenManager;
+    private final AudioManager audioManager;
     private JButton backButton;
     private JButton displayModeButton;
     private JSlider bgmVolumeSlider;
@@ -21,6 +25,7 @@ public class SettingsView extends JPanel {
     public SettingsView(ScreenManager screenManager) {
         this.screenManager = screenManager;
         this.fullscreenManager = screenManager.getFullscreenManager();
+        this.audioManager = AudioManager.getInstance();
         setLayout(null);
         setOpaque(false);
         setPreferredSize(Constants.WINDOW_SIZE);
@@ -28,6 +33,7 @@ public class SettingsView extends JPanel {
         setupLayout();
         layoutComponents();
         syncFullscreenState();
+        syncAudioSettings();
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
             public void componentResized(java.awt.event.ComponentEvent e) {
@@ -67,15 +73,19 @@ public class SettingsView extends JPanel {
     private void createComponents() {
         
         backButton = createCartoonButton("← KEMBALI", Constants.NEO_BLUE);
-        backButton.addActionListener(e -> screenManager.showMainMenu());
+        backButton.addActionListener(e -> {
+            audioManager.playSFX("assets/click.wav");
+            screenManager.showMainMenu();
+        });
         
         displayModeButton = createSmallCartoonButton("WINDOWED", Constants.NEO_PURPLE);
         displayModeButton.addActionListener(e -> {
+            audioManager.playSFX("assets/click.wav");
             fullscreenManager.toggleFullscreen();
             syncFullscreenState();
         });
         
-        bgmVolumeSlider = new JSlider(0, 100, 70);
+        bgmVolumeSlider = new JSlider(0, 100, audioManager.getBGMVolumeSliderValue());
         bgmVolumeSlider.setOpaque(false);
         bgmVolumeSlider.setMajorTickSpacing(25);
         bgmVolumeSlider.setMinorTickSpacing(5);
@@ -84,7 +94,16 @@ public class SettingsView extends JPanel {
         bgmVolumeSlider.setForeground(new Color(13, 37, 103));
         bgmVolumeSlider.setFont(new Font("Arial", Font.BOLD, 12));
         
-        sfxVolumeSlider = new JSlider(0, 100, 80);
+        // Add listener untuk update volume BGM real-time
+        bgmVolumeSlider.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                int value = bgmVolumeSlider.getValue();
+                audioManager.setBGMVolumeFromSlider(value);
+            }
+        });
+        
+        sfxVolumeSlider = new JSlider(0, 100, audioManager.getSFXVolumeSliderValue());
         sfxVolumeSlider.setOpaque(false);
         sfxVolumeSlider.setMajorTickSpacing(25);
         sfxVolumeSlider.setMinorTickSpacing(5);
@@ -92,6 +111,15 @@ public class SettingsView extends JPanel {
         sfxVolumeSlider.setPaintLabels(true);
         sfxVolumeSlider.setForeground(new Color(13, 37, 103));
         sfxVolumeSlider.setFont(new Font("Arial", Font.BOLD, 12));
+        
+        // Add listener untuk update volume SFX real-time
+        sfxVolumeSlider.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                int value = sfxVolumeSlider.getValue();
+                audioManager.setSFXVolumeFromSlider(value);
+            }
+        });
     }
     
     private void setupLayout() {
@@ -405,6 +433,11 @@ public class SettingsView extends JPanel {
     public final void syncFullscreenState() {
         isFullscreen = fullscreenManager.isFullscreen();
         displayModeButton.setText(isFullscreen ? "FULLSCREEN" : "WINDOWED");
+    }
+    
+    public final void syncAudioSettings() {
+        bgmVolumeSlider.setValue(audioManager.getBGMVolumeSliderValue());
+        sfxVolumeSlider.setValue(audioManager.getSFXVolumeSliderValue());
     }
     
     public JButton getBackButton() {

@@ -1,6 +1,7 @@
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import util.AudioManager;
 import util.Constants;
 import view.ScreenManager;
 
@@ -21,6 +22,17 @@ public class App {
 
             ScreenManager screenManager = new ScreenManager(frame);
             frame.setContentPane(screenManager.getRootPanel());
+            
+            AudioManager audioManager = AudioManager.getInstance();
+            audioManager.playBGM("assets/bgm.wav");
+            
+            frame.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                    audioManager.cleanup();
+                }
+            });
+            
             frame.setVisible(true);
             screenManager.showMainMenu();
         });
