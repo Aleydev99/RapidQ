@@ -7,6 +7,7 @@ import javax.swing.JPanel;
 public class ScreenManager {
     public static final String MAIN_MENU = "MAIN_MENU";
     public static final String SETTINGS = "SETTINGS";
+    public static final String LEADERBOARD = "LEADERBOARD";
 
     private final JFrame frame;
     private final CardLayout cardLayout;
@@ -14,6 +15,7 @@ public class ScreenManager {
     private final FullscreenManager fullscreenManager;
     private final MainMenuView mainMenuView;
     private final SettingsView settingsView;
+    private final LeaderboardView leaderboardView;
 
     public ScreenManager(JFrame frame) {
         this.frame = frame;
@@ -23,8 +25,10 @@ public class ScreenManager {
         this.fullscreenManager = new FullscreenManager(frame);
         this.mainMenuView = new MainMenuView(this);
         this.settingsView = new SettingsView(this);
+        this.leaderboardView = new LeaderboardView(this);
         rootPanel.add(mainMenuView, MAIN_MENU);
         rootPanel.add(settingsView, SETTINGS);
+        rootPanel.add(leaderboardView, LEADERBOARD);
     }
 
     public JPanel getRootPanel() {
@@ -48,5 +52,11 @@ public class ScreenManager {
         settingsView.syncFullscreenState();
         cardLayout.show(rootPanel, SETTINGS);
         settingsView.requestFocusInWindow();
+    }
+
+    public void showLeaderboard() {
+        leaderboardView.refreshLeaderboard();
+        cardLayout.show(rootPanel, LEADERBOARD);
+        leaderboardView.requestFocusInWindow();
     }
 }

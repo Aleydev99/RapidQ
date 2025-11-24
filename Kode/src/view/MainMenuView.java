@@ -131,6 +131,7 @@ public class MainMenuView extends JPanel {
         settingsButton = createIconButton(settingsImage, Constants.NEO_PURPLE);
         
         exitButton.addActionListener(e -> showExitConfirmation());
+        leaderboardButton.addActionListener(e -> screenManager.showLeaderboard());
         settingsButton.addActionListener(e -> screenManager.showSettings());
     }
     
@@ -162,7 +163,7 @@ public class MainMenuView extends JPanel {
                 }
             }
         };
-        versionLabel = new JLabel("v1.0 - 3D Cartoon Edition", SwingConstants.CENTER);
+        versionLabel = new JLabel("Project PBO Kelompok 11", SwingConstants.CENTER);
         versionLabel.setFont(new Font("Arial", Font.BOLD, 12));
         versionLabel.setForeground(new Color(255, 255, 255, 180));
         
