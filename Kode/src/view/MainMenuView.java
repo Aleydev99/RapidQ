@@ -210,7 +210,7 @@ public class MainMenuView extends JPanel {
         exitButton.setBounds(buttonX, firstButtonY + (buttonHeight + 20) * 2, buttonWidth, buttonHeight);
         
         settingsButton.setBounds(Math.max(20, width - 90), Math.max(20, headerY - 30), 60, 60);
-        versionLabel.setBounds((width - 250) / 2, height - 50, 250, 20);
+        versionLabel.setBounds((width - 250) / 2, height - 75, 250, 20);
     }
     
     private JButton createCartoonButton(String text, Color bgColor) {
