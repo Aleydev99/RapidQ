@@ -9,8 +9,8 @@ public class Database {
     private Connection connection;
     
     private static final String DB_URL = "jdbc:mysql://localhost:3306/rapidq_db";
-    private static final String DB_USER = "anon";
-    private static final String DB_PASSWORD = "anon";
+    private static final String DB_USER = "root";
+    private static final String DB_PASSWORD = "";
     
     private Database() {
         try {
@@ -515,7 +515,7 @@ public class Database {
         public char getCorrectAnswer() { return correctAnswer.charAt(0); }
         
         public boolean isCorrect(char answer) {
-            return this.correctAnswer == Character.toUpperCase(answer);
+            return this.correctAnswer.equals(String.valueOf(Character.toUpperCase(answer)));
         }
         
         public String getOption(char option) {

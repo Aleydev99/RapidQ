@@ -116,68 +116,74 @@ public class LeaderboardView extends JPanel {
     }
     
     private void createFilterPanel() {
-        filterPanel = new JPanel();
-        filterPanel.setLayout(null);
-        filterPanel.setOpaque(false);
-        
-        // Category label and combo box
-        JLabel categoryLabel = new JLabel("📚 Kategori:");
-        categoryLabel.setFont(new Font("Arial Black", Font.BOLD, 16));
-        categoryLabel.setForeground(Color.WHITE);
-        categoryLabel.setBounds(20, 5, 120, 25);
-        
-        String[] categories = {"Semua Kategori", "Matematika", "Bahasa Indonesia", "IPA", "IPS", "Bahasa Inggris"};
-        categoryComboBox = new JComboBox<>(categories);
-        categoryComboBox.setFont(new Font("Arial", Font.PLAIN, 14));
-        categoryComboBox.setBounds(20, 32, 200, 32);
-        categoryComboBox.setBackground(Color.WHITE);
-        categoryComboBox.setFocusable(false);
-        
-        // Difficulty label and combo box
-        JLabel difficultyLabel = new JLabel("⭐ Level:");
-        difficultyLabel.setFont(new Font("Arial Black", Font.BOLD, 16));
-        difficultyLabel.setForeground(Color.WHITE);
-        difficultyLabel.setBounds(240, 5, 100, 25);
-        
-        String[] difficulties = {"Semua Level", "MUDAH", "SEDANG", "SULIT"};
-        difficultyComboBox = new JComboBox<>(difficulties);
-        difficultyComboBox.setFont(new Font("Arial", Font.PLAIN, 14));
-        difficultyComboBox.setBounds(240, 32, 180, 32);
-        difficultyComboBox.setBackground(Color.WHITE);
-        difficultyComboBox.setFocusable(false);
-        
-        // Filter button
-        filterButton = createCartoonButton("🔍 FILTER", Constants.NEO_PINK);
-        filterButton.setBounds(440, 20, 160, 45);
-        filterButton.addActionListener(e -> {
-            audioManager.playSFX("assets/click.wav");
+    filterPanel = new JPanel() {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2d = (Graphics2D) g;
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            g2d.setColor(new Color(255, 255, 255, 120));
+            g2d.fillRoundRect(5, 5, getWidth() - 10, getHeight() - 10, 20, 20);
+
+            g2d.setColor(new Color(255, 255, 255, 200));
+            g2d.setStroke(new BasicStroke(2));
+            g2d.drawRoundRect(5, 5, getWidth() - 10, getHeight() - 10, 20, 20);
+        }
+    };
+    filterPanel.setLayout(null);
+    filterPanel.setOpaque(false);
+
+    String[] categories = {
+        "Semua Kategori", "Matematika", "Bahasa Indonesia",
+        "IPA", "IPS", "Bahasa Inggris"
+    };
+
+    categoryComboBox = createStyledComboBox(categories);
+    categoryComboBox.setBounds(30, 15, 230, 40);
+    getComboBoxFromWrapper(categoryComboBox).addItemListener(e -> {
+        if (e.getStateChange() == java.awt.event.ItemEvent.SELECTED) {
             loadLeaderboard();
-        });
-        
-        // Reset button
-        JButton resetButton = createCartoonButton("↻ RESET", Constants.NEO_YELLOW);
-        resetButton.setBounds(620, 20, 140, 45);
-        resetButton.addActionListener(e -> {
-            audioManager.playSFX("assets/click.wav");
-            categoryComboBox.setSelectedIndex(0);
-            difficultyComboBox.setSelectedIndex(0);
-            loadLeaderboard();
-        });
-        
-        filterPanel.add(categoryLabel);
-        filterPanel.add(categoryComboBox);
-        filterPanel.add(difficultyLabel);
-        filterPanel.add(difficultyComboBox);
-        filterPanel.add(filterButton);
-        filterPanel.add(resetButton);
-    }
+        }
+    });
+
     
-    private void setupLayout() {
-        add(titleLabel);
-        add(filterPanel);
-        add(scrollPane);
-        add(backButton);
-    }
+    String[] difficulties = {"Semua Level", "MUDAH", "SEDANG", "SULIT"};
+    difficultyComboBox = createStyledComboBox(difficulties);
+    difficultyComboBox.setBounds(280, 15, 230, 40);
+    getComboBoxFromWrapper(difficultyComboBox).addItemListener(e -> {
+        if (e.getStateChange() == java.awt.event.ItemEvent.SELECTED) {
+            loadLeaderboard();
+        }
+    });
+
+    // ===== BUTTON FILTER =====
+    filterButton = createCartoonButton(" FILTER", Constants.NEO_PINK);
+    filterButton.setBounds(530, 10, 160, 50);
+
+    filterButton.addActionListener(e -> {
+        audioManager.playSFX("assets/click.wav");
+        loadLeaderboard();
+    });
+
+    // ===== BUTTON RESET =====
+    JButton resetButton = createCartoonButton(" RESET", Constants.NEO_YELLOW);
+    resetButton.setBounds(700, 10, 140, 50);
+
+    resetButton.addActionListener(e -> {
+        audioManager.playSFX("assets/click.wav");
+        getComboBoxFromWrapper(categoryComboBox).setSelectedIndex(0);
+        getComboBoxFromWrapper(difficultyComboBox).setSelectedIndex(0);
+        loadLeaderboard();
+    });
+
+    // Add components
+    filterPanel.add(categoryComboBox);
+    filterPanel.add(difficultyComboBox);
+    filterPanel.add(filterButton);
+    filterPanel.add(resetButton);
+}
+
     
     private void layoutComponents() {
         if (titleLabel == null || filterPanel == null || scrollPane == null || backButton == null) {
@@ -552,6 +558,47 @@ public class LeaderboardView extends JPanel {
         return panel;
     }
     
+    private JComboBox<String> createStyledComboBox(String[] items) {
+        JComboBox<String> comboBox = new JComboBox<>(items);
+        comboBox.setFont(new Font("Arial", Font.BOLD, 16));
+        comboBox.setForeground(new Color(13, 37, 103));
+        comboBox.setBackground(new Color(255, 255, 255, 200));
+        comboBox.setOpaque(false);
+        comboBox.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        comboBox.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        // Custom renderer for styling
+        comboBox.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                    boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                setFont(new Font("Arial", Font.BOLD, 16));
+                setForeground(new Color(13, 37, 103));
+                if (isSelected) {
+                    setBackground(new Color(255, 255, 255, 100));
+                } else {
+                    setBackground(new Color(255, 255, 255, 50));
+                }
+                setOpaque(true);
+                return this;
+            }
+        });
+
+        return comboBox;
+    }
+
+    private JComboBox<String> getComboBoxFromWrapper(JComboBox<String> wrapper) {
+        return wrapper;
+    }
+
+    private void setupLayout() {
+        add(titleLabel);
+        add(filterPanel);
+        add(scrollPane);
+        add(backButton);
+    }
+
     private JButton createCartoonButton(String text, Color bgColor) {
         JButton button = new JButton(text) {
             @Override
