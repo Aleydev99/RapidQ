@@ -67,7 +67,7 @@ public class Constants {
     public static final int PADDING_SMALL = 10;
     
     public static final int QUIZ_TIME_SECONDS = 60;
-    public static final int QUESTIONS_PER_QUIZ = 20;
+    public static final int QUESTIONS_PER_QUIZ = 100; 
     public static final int CORRECT_ANSWER_POINTS = 10;
     public static final int TIME_BONUS_MULTIPLIER = 2;
     
@@ -78,8 +78,9 @@ public class Constants {
     public static final String DB_NAME = "rapidq.db";
     public static final String DB_PATH = "data/" + DB_NAME;
     
-    public static final int MAX_SKIP_LIFELINE = 3;
-    public static final int MAX_FIFTY_FIFTY_LIFELINE = 2;
+    public static final int MAX_SKIP_LIFELINE = -1; 
+    public static final int MAX_FIFTY_FIFTY_LIFELINE = 1;
+    public static final int MAX_HINT_LIFELINE = 1; 
     
     private static boolean isDarkMode = false;
     
