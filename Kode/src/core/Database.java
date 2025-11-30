@@ -205,14 +205,46 @@ public class Database {
     }
     
     public List<LeaderboardEntry> getTopLeaderboard(int limit) {
+        return getTopLeaderboard(limit, null, null);
+    }
+    
+    public List<LeaderboardEntry> getTopLeaderboard(int limit, String categoryName, String difficulty) {
         List<LeaderboardEntry> leaderboard = new ArrayList<>();
-        String query = "SELECT l.*, p.username FROM leaderboard l " +
-                      "JOIN players p ON l.player_id = p.player_id " +
-                      "ORDER BY l.score DESC, l.accuracy_percentage DESC, l.achieved_at ASC " +
-                      "LIMIT ?";
+        StringBuilder queryBuilder = new StringBuilder();
+        queryBuilder.append("SELECT l.*, p.username FROM leaderboard l ");
+        queryBuilder.append("JOIN players p ON l.player_id = p.player_id ");
+        queryBuilder.append("JOIN quiz_sessions qs ON l.session_id = qs.session_id ");
         
-        try (PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setInt(1, limit);
+        // Add filters if provided
+        List<String> conditions = new ArrayList<>();
+        if (categoryName != null && !categoryName.equals("Semua Kategori")) {
+            queryBuilder.append("JOIN categories c ON qs.category_id = c.category_id ");
+            conditions.add("c.category_name = ?");
+        }
+        if (difficulty != null && !difficulty.equals("Semua Level")) {
+            conditions.add("qs.game_mode LIKE ?");
+        }
+        
+        if (!conditions.isEmpty()) {
+            queryBuilder.append("WHERE ");
+            queryBuilder.append(String.join(" AND ", conditions));
+            queryBuilder.append(" ");
+        }
+        
+        queryBuilder.append("ORDER BY l.score DESC, l.accuracy_percentage DESC, l.achieved_at ASC ");
+        queryBuilder.append("LIMIT ?");
+        
+        try (PreparedStatement stmt = connection.prepareStatement(queryBuilder.toString())) {
+            int paramIndex = 1;
+            
+            if (categoryName != null && !categoryName.equals("Semua Kategori")) {
+                stmt.setString(paramIndex++, categoryName);
+            }
+            if (difficulty != null && !difficulty.equals("Semua Level")) {
+                stmt.setString(paramIndex++, "%" + difficulty + "%");
+            }
+            stmt.setInt(paramIndex, limit);
+            
             ResultSet rs = stmt.executeQuery();
             
             int rank = 1;
@@ -263,6 +295,157 @@ public class Database {
             }
         }
     }
+    
+    // New methods for QuizView
+    public List<Question> getRandomQuestions(String categoryName, String difficulty, int limit) {
+        List<Question> questions = new ArrayList<>();
+        // Convert difficulty: MUDAH->EASY, SEDANG->MEDIUM, SULIT->HARD
+        String dbDifficulty = convertDifficultyToDb(difficulty);
+        
+        String query = "SELECT q.* FROM questions q " +
+                      "JOIN categories c ON q.category_id = c.category_id " +
+                      "WHERE c.category_name = ? AND q.difficulty_level = ? " +
+                      "ORDER BY RAND() LIMIT ?";
+        
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, categoryName);
+            stmt.setString(2, dbDifficulty);
+            stmt.setInt(3, limit);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                questions.add(new Question(
+                    rs.getInt("question_id"),
+                    rs.getInt("category_id"),
+                    rs.getString("question_text"),
+                    rs.getString("option_a"),
+                    rs.getString("option_b"),
+                    rs.getString("option_c"),
+                    rs.getString("option_d"),
+                    rs.getString("correct_answer"),
+                    rs.getString("difficulty_level") // Gunakan dari database
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return questions;
+    }
+    
+    private String convertDifficultyToDb(String difficulty) {
+        if (difficulty == null) return "MEDIUM";
+        switch (difficulty.toUpperCase()) {
+            case "MUDAH": return "EASY";
+            case "SEDANG": return "MEDIUM";
+            case "SULIT": return "HARD";
+            default: return difficulty.toUpperCase();
+        }
+    }
+    
+    public int createSession(String playerName, String categoryName, String difficulty) {
+        // First, get or create player
+        int playerId = getOrCreatePlayer(playerName);
+        if (playerId == -1) return -1;
+        
+        // Get category ID
+        int categoryId = getCategoryIdByName(categoryName);
+        if (categoryId == -1) return -1;
+        
+        String query = "INSERT INTO quiz_sessions (player_id, category_id, game_mode) VALUES (?, ?, ?)";
+        
+        try (PreparedStatement stmt = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setInt(1, playerId);
+            stmt.setInt(2, categoryId);
+            stmt.setString(3, "Speed Quiz 60s - " + difficulty);
+            
+            int affectedRows = stmt.executeUpdate();
+            if (affectedRows > 0) {
+                ResultSet rs = stmt.getGeneratedKeys();
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return -1;
+    }
+    
+    private int getOrCreatePlayer(String username) {
+        // Check if player exists
+        String checkQuery = "SELECT player_id FROM players WHERE username = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(checkQuery)) {
+            stmt.setString(1, username);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("player_id");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        // Create new player
+        return createPlayer(username);
+    }
+    
+    private int getCategoryIdByName(String categoryName) {
+        String query = "SELECT category_id FROM categories WHERE category_name = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, categoryName);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("category_id");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+    
+    public boolean updateSession(int sessionId, int score, int correctAnswers, int incorrectAnswers) {
+        String query = "UPDATE quiz_sessions SET " +
+                      "total_score = ?, correct_answers = ?, wrong_answers = ?, " +
+                      "total_questions_answered = ?, session_end = NOW() " +
+                      "WHERE session_id = ?";
+        
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, score);
+            stmt.setInt(2, correctAnswers);
+            stmt.setInt(3, incorrectAnswers);
+            stmt.setInt(4, correctAnswers + incorrectAnswers);
+            stmt.setInt(5, sessionId);
+            
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return false;
+    }
+    
+    public void saveQuestionAnswer(int sessionId, int questionId, String userAnswer, boolean isCorrect) {
+        String query = "INSERT INTO question_answers (session_id, question_id, user_answer, is_correct) " +
+                      "VALUES (?, ?, ?, ?)";
+        
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, sessionId);
+            stmt.setInt(2, questionId);
+            stmt.setString(3, userAnswer);
+            stmt.setBoolean(4, isCorrect);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public boolean addLeaderboard(String playerName, int sessionId, int score, int questionsAnswered, double accuracy) {
+        int playerId = getOrCreatePlayer(playerName);
+        if (playerId == -1) return false;
+        if (sessionId <= 0) return false;
+        return addLeaderboard(playerId, sessionId, score, questionsAnswered, accuracy);
+    }
         
     public static class Category {
         private int categoryId;
@@ -284,19 +467,34 @@ public class Database {
     }
     
     public static class Question {
-        private int questionId;
-        private int categoryId;
-        private String questionText;
-        private String optionA;
-        private String optionB;
-        private String optionC;
-        private String optionD;
-        private char correctAnswer;
+        public int id;
+        public int categoryId;
+        public String questionText;
+        public String optionA;
+        public String optionB;
+        public String optionC;
+        public String optionD;
+        public String correctAnswer;
+        public String difficulty;
         
         public Question(int questionId, int categoryId, String questionText, 
                        String optionA, String optionB, String optionC, String optionD, 
                        char correctAnswer) {
-            this.questionId = questionId;
+            this.id = questionId;
+            this.categoryId = categoryId;
+            this.questionText = questionText;
+            this.optionA = optionA;
+            this.optionB = optionB;
+            this.optionC = optionC;
+            this.optionD = optionD;
+            this.correctAnswer = String.valueOf(correctAnswer);
+            this.difficulty = "medium"; // default
+        }
+        
+        public Question(int questionId, int categoryId, String questionText, 
+                       String optionA, String optionB, String optionC, String optionD, 
+                       String correctAnswer, String difficulty) {
+            this.id = questionId;
             this.categoryId = categoryId;
             this.questionText = questionText;
             this.optionA = optionA;
@@ -304,16 +502,17 @@ public class Database {
             this.optionC = optionC;
             this.optionD = optionD;
             this.correctAnswer = correctAnswer;
+            this.difficulty = difficulty != null ? difficulty : "medium";
         }
         
-        public int getQuestionId() { return questionId; }
+        public int getQuestionId() { return id; }
         public int getCategoryId() { return categoryId; }
         public String getQuestionText() { return questionText; }
         public String getOptionA() { return optionA; }
         public String getOptionB() { return optionB; }
         public String getOptionC() { return optionC; }
         public String getOptionD() { return optionD; }
-        public char getCorrectAnswer() { return correctAnswer; }
+        public char getCorrectAnswer() { return correctAnswer.charAt(0); }
         
         public boolean isCorrect(char answer) {
             return this.correctAnswer == Character.toUpperCase(answer);

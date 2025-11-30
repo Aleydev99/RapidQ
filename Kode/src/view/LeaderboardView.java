@@ -26,6 +26,12 @@ public class LeaderboardView extends JPanel {
     private static final int TOP_LIMIT = 10;
     private static final double EMPTY_IMAGE_VERTICAL_RATIO = 0.08; // Semakin kecil semakin mendekati atas
     
+    // Filter components
+    private JComboBox<String> categoryComboBox;
+    private JComboBox<String> difficultyComboBox;
+    private JButton filterButton;
+    private JPanel filterPanel;
+    
     public LeaderboardView(ScreenManager screenManager) {
         this.screenManager = screenManager;
         this.audioManager = AudioManager.getInstance();
@@ -94,6 +100,9 @@ public class LeaderboardView extends JPanel {
         titleLabel.setFont(new Font("Arial Black", Font.BOLD, 48));
         titleLabel.setForeground(Color.WHITE);
         
+        // Create filter panel
+        createFilterPanel();
+        
         leaderboardPanel = new JPanel();
         leaderboardPanel.setLayout(new BoxLayout(leaderboardPanel, BoxLayout.Y_AXIS));
         leaderboardPanel.setOpaque(false);
@@ -106,14 +115,72 @@ public class LeaderboardView extends JPanel {
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
     }
     
+    private void createFilterPanel() {
+        filterPanel = new JPanel();
+        filterPanel.setLayout(null);
+        filterPanel.setOpaque(false);
+        
+        // Category label and combo box
+        JLabel categoryLabel = new JLabel("📚 Kategori:");
+        categoryLabel.setFont(new Font("Arial Black", Font.BOLD, 16));
+        categoryLabel.setForeground(Color.WHITE);
+        categoryLabel.setBounds(20, 5, 120, 25);
+        
+        String[] categories = {"Semua Kategori", "Matematika", "Bahasa Indonesia", "IPA", "IPS", "Bahasa Inggris"};
+        categoryComboBox = new JComboBox<>(categories);
+        categoryComboBox.setFont(new Font("Arial", Font.PLAIN, 14));
+        categoryComboBox.setBounds(20, 32, 200, 32);
+        categoryComboBox.setBackground(Color.WHITE);
+        categoryComboBox.setFocusable(false);
+        
+        // Difficulty label and combo box
+        JLabel difficultyLabel = new JLabel("⭐ Level:");
+        difficultyLabel.setFont(new Font("Arial Black", Font.BOLD, 16));
+        difficultyLabel.setForeground(Color.WHITE);
+        difficultyLabel.setBounds(240, 5, 100, 25);
+        
+        String[] difficulties = {"Semua Level", "MUDAH", "SEDANG", "SULIT"};
+        difficultyComboBox = new JComboBox<>(difficulties);
+        difficultyComboBox.setFont(new Font("Arial", Font.PLAIN, 14));
+        difficultyComboBox.setBounds(240, 32, 180, 32);
+        difficultyComboBox.setBackground(Color.WHITE);
+        difficultyComboBox.setFocusable(false);
+        
+        // Filter button
+        filterButton = createCartoonButton("🔍 FILTER", Constants.NEO_PINK);
+        filterButton.setBounds(440, 20, 160, 45);
+        filterButton.addActionListener(e -> {
+            audioManager.playSFX("assets/click.wav");
+            loadLeaderboard();
+        });
+        
+        // Reset button
+        JButton resetButton = createCartoonButton("↻ RESET", Constants.NEO_YELLOW);
+        resetButton.setBounds(620, 20, 140, 45);
+        resetButton.addActionListener(e -> {
+            audioManager.playSFX("assets/click.wav");
+            categoryComboBox.setSelectedIndex(0);
+            difficultyComboBox.setSelectedIndex(0);
+            loadLeaderboard();
+        });
+        
+        filterPanel.add(categoryLabel);
+        filterPanel.add(categoryComboBox);
+        filterPanel.add(difficultyLabel);
+        filterPanel.add(difficultyComboBox);
+        filterPanel.add(filterButton);
+        filterPanel.add(resetButton);
+    }
+    
     private void setupLayout() {
         add(titleLabel);
+        add(filterPanel);
         add(scrollPane);
         add(backButton);
     }
     
     private void layoutComponents() {
-        if (titleLabel == null || scrollPane == null || backButton == null) {
+        if (titleLabel == null || filterPanel == null || scrollPane == null || backButton == null) {
             return;
         }
         
@@ -126,10 +193,17 @@ public class LeaderboardView extends JPanel {
         int titleY = Math.max(30, height / 16);
         titleLabel.setBounds(titleX, titleY, titleWidth, titleHeight);
         
+        // Filter panel below title
+        int filterWidth = Math.min(850, width - 100);
+        int filterHeight = 70;
+        int filterX = (width - filterWidth) / 2;
+        int filterY = titleY + titleHeight + 15;
+        filterPanel.setBounds(filterX, filterY, filterWidth, filterHeight);
+        
         int scrollWidth = Math.min(850, width - 100);
-        int scrollHeight = height - titleY - titleHeight - 150;
+        int scrollHeight = height - filterY - filterHeight - 160;
         int scrollX = (width - scrollWidth) / 2;
-        int scrollY = titleY + titleHeight + 20;
+        int scrollY = filterY + filterHeight + 15;
         scrollPane.setBounds(scrollX, scrollY, scrollWidth, scrollHeight);
         
         int backY = Math.min(height - 90, scrollY + scrollHeight + 20);
@@ -137,10 +211,14 @@ public class LeaderboardView extends JPanel {
     }
     
     private void loadLeaderboard() {
+        String selectedCategory = (String) categoryComboBox.getSelectedItem();
+        String selectedDifficulty = (String) difficultyComboBox.getSelectedItem();
+        
         leaderboardPanel.removeAll();
         
         try {
-            List<Database.LeaderboardEntry> entries = database.getTopLeaderboard(TOP_LIMIT);
+            List<Database.LeaderboardEntry> entries = database.getTopLeaderboard(
+                TOP_LIMIT, selectedCategory, selectedDifficulty);
             
             if (entries.isEmpty()) {
                 JPanel placeholderContainer = new JPanel();

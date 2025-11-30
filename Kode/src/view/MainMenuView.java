@@ -129,6 +129,11 @@ public class MainMenuView extends JPanel {
     private void createComponents() {
         
         startButton = createCartoonButton("START QUIZ", Constants.NEO_GREEN);
+        startButton.addActionListener(e -> {
+            audioManager.playSFX("assets/click.wav");
+            screenManager.showUsernameInput();
+        });
+        
         leaderboardButton = createCartoonButton("LEADERBOARD", Constants.NEO_PINK);
         exitButton = createCartoonButton("EXIT", Constants.NEO_RED);
         settingsButton = createIconButton(settingsImage, Constants.NEO_PURPLE);
