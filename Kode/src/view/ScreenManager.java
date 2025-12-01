@@ -130,8 +130,8 @@ public class ScreenManager {
         quizView.requestFocusInWindow();
     }
     
-    public void showResult(int score, int correctAnswers, int incorrectAnswers) {
-        resultView.updateResult(score, correctAnswers, incorrectAnswers);
+    public void showResult(int score, int correctAnswers, int incorrectAnswers, int speedBonus) {
+        resultView.updateResult(score, correctAnswers, incorrectAnswers, speedBonus);
         cardLayout.show(rootPanel, RESULT);
         resultView.requestFocusInWindow();
     }

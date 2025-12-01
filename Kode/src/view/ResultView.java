@@ -16,6 +16,7 @@ public class ResultView extends JPanel {
     private JLabel scoreLabel;
     private JLabel statsLabel;
     private JLabel accuracyLabel;
+    private JLabel speedBonusLabel;
     private JLabel messageLabel;
     private JButton leaderboardButton;
     private JButton mainMenuButton;
@@ -24,6 +25,7 @@ public class ResultView extends JPanel {
     private int finalScore;
     private int correctAnswers;
     private int incorrectAnswers;
+    private int speedBonus;
     
     public ResultView(ScreenManager screenManager) {
         this.screenManager = screenManager;
@@ -61,7 +63,6 @@ public class ResultView extends JPanel {
         g2d.setPaint(gradient);
         g2d.fillRect(0, 0, getWidth(), getHeight());
         
-        // Floating rays
         g2d.setColor(new Color(255, 255, 255, 30));
         g2d.setStroke(new BasicStroke(3));
         for (int i = 0; i < 16; i++) {
@@ -73,22 +74,19 @@ public class ResultView extends JPanel {
     }
     
     private void createComponents() {
-        // Title
         titleLabel = new JLabel("QUIZ SELESAI!", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Arial Black", Font.BOLD, 52));
         titleLabel.setForeground(Color.WHITE);
         
-        // Result panel
         resultPanel = createResultPanel();
         
-        // Buttons
-        leaderboardButton = createCartoonButton("🏆 LIHAT LEADERBOARD", Constants.NEO_YELLOW);
+        leaderboardButton = createCartoonButton("LIHAT LEADERBOARD", Constants.NEO_YELLOW);
         leaderboardButton.addActionListener(e -> {
             audioManager.playSFX("assets/click.wav");
             screenManager.showLeaderboard();
         });
         
-        mainMenuButton = createCartoonButton("🏠 MENU UTAMA", Constants.NEO_BLUE);
+        mainMenuButton = createCartoonButton("MENU UTAMA", Constants.NEO_BLUE);
         mainMenuButton.addActionListener(e -> {
             audioManager.playSFX("assets/click.wav");
             screenManager.showMainMenu();
@@ -103,11 +101,9 @@ public class ResultView extends JPanel {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 
-                // Shadow
                 g2d.setColor(new Color(0, 0, 0, 100));
                 g2d.fillRoundRect(8, 8, getWidth() - 16, getHeight() - 16, 30, 30);
                 
-                // Background
                 GradientPaint gradient = new GradientPaint(
                     0, 0, new Color(255, 255, 255, 230),
                     0, getHeight(), new Color(255, 255, 255, 190)
@@ -115,7 +111,6 @@ public class ResultView extends JPanel {
                 g2d.setPaint(gradient);
                 g2d.fillRoundRect(0, 0, getWidth() - 16, getHeight() - 16, 30, 30);
                 
-                // Border
                 g2d.setColor(Constants.NEO_WHITE);
                 g2d.setStroke(new BasicStroke(4));
                 g2d.drawRoundRect(2, 2, getWidth() - 20, getHeight() - 20, 26, 26);
@@ -125,39 +120,40 @@ public class ResultView extends JPanel {
         panel.setLayout(null);
         panel.setOpaque(false);
         
-        // Trophy emoji
         JLabel trophyLabel = new JLabel("🎉", SwingConstants.CENTER);
         trophyLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 80));
         trophyLabel.setBounds(0, 30, 550, 100);
         
-        // Score
         scoreLabel = new JLabel("Score: 0", SwingConstants.CENTER);
         scoreLabel.setFont(new Font("Arial Black", Font.BOLD, 42));
         scoreLabel.setForeground(Constants.NEO_GREEN);
         scoreLabel.setBounds(0, 140, 550, 50);
         
-        // Stats
         statsLabel = new JLabel("<html><center>Benar: 0 | Salah: 0</center></html>", SwingConstants.CENTER);
         statsLabel.setFont(new Font("Arial", Font.BOLD, 20));
         statsLabel.setForeground(new Color(13, 37, 103));
         statsLabel.setBounds(50, 200, 450, 30);
         
-        // Accuracy
         accuracyLabel = new JLabel("Akurasi: 0%", SwingConstants.CENTER);
         accuracyLabel.setFont(new Font("Arial Black", Font.BOLD, 28));
         accuracyLabel.setForeground(Constants.NEO_BLUE);
         accuracyLabel.setBounds(0, 240, 550, 35);
         
-        // Message
+        speedBonusLabel = new JLabel("Bonus Kecepatan: +0", SwingConstants.CENTER);
+        speedBonusLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        speedBonusLabel.setForeground(Constants.NEO_ORANGE);
+        speedBonusLabel.setBounds(0, 280, 550, 25);
+        
         messageLabel = new JLabel("<html><center>Luar biasa!</center></html>", SwingConstants.CENTER);
         messageLabel.setFont(new Font("Arial", Font.BOLD | Font.ITALIC, 18));
         messageLabel.setForeground(new Color(13, 37, 103, 180));
-        messageLabel.setBounds(50, 290, 450, 40);
+        messageLabel.setBounds(50, 310, 450, 40);
         
         panel.add(trophyLabel);
         panel.add(scoreLabel);
         panel.add(statsLabel);
         panel.add(accuracyLabel);
+        panel.add(speedBonusLabel);
         panel.add(messageLabel);
         
         return panel;
@@ -174,21 +170,18 @@ public class ResultView extends JPanel {
         int width = Math.max(getWidth(), Constants.WINDOW_SIZE.width);
         int height = Math.max(getHeight(), Constants.WINDOW_SIZE.height);
         
-        // Title
         int titleWidth = 700;
         int titleHeight = 70;
         int titleX = (width - titleWidth) / 2;
         int titleY = Math.max(40, height / 14);
         titleLabel.setBounds(titleX, titleY, titleWidth, titleHeight);
         
-        // Result panel
         int panelWidth = 550;
         int panelHeight = 360;
         int panelX = (width - panelWidth) / 2;
         int panelY = titleY + titleHeight + 30;
         resultPanel.setBounds(panelX, panelY, panelWidth, panelHeight);
         
-        // Buttons
         int buttonWidth = 300;
         int buttonHeight = 70;
         int buttonSpacing = 30;
@@ -202,31 +195,31 @@ public class ResultView extends JPanel {
         mainMenuButton.setBounds(mainMenuX, buttonY, buttonWidth, buttonHeight);
     }
     
-    public void updateResult(int score, int correct, int incorrect) {
+    public void updateResult(int score, int correct, int incorrect, int speedBonus) {
         this.finalScore = score;
         this.correctAnswers = correct;
         this.incorrectAnswers = incorrect;
+        this.speedBonus = speedBonus;
         
         int totalQuestions = correct + incorrect;
         double accuracy = totalQuestions > 0 ? (correct * 100.0 / totalQuestions) : 0;
         
-        // Update labels
         scoreLabel.setText("Score: " + score);
-        statsLabel.setText("<html><center>✅ Benar: " + correct + " | ❌ Salah: " + incorrect + "</center></html>");
+        statsLabel.setText("<html><center>Benar: " + correct + " | Salah: " + incorrect + "</center></html>");
         accuracyLabel.setText("Akurasi: " + String.format("%.1f", accuracy) + "%");
+        speedBonusLabel.setText("Bonus Kecepatan: +" + speedBonus);
         
-        // Motivational message based on accuracy
         String message;
         if (accuracy >= 90) {
-            message = "🌟 Sempurna! Kamu luar biasa!";
+            message = "Sempurna! Kamu luar biasa!";
         } else if (accuracy >= 75) {
-            message = "💪 Bagus sekali! Pertahankan!";
+            message = "Bagus sekali! Pertahankan!";
         } else if (accuracy >= 60) {
-            message = "👍 Lumayan! Terus berlatih!";
+            message = "Lumayan! Terus berlatih!";
         } else if (accuracy >= 40) {
-            message = "💡 Coba lagi, pasti bisa lebih baik!";
+            message = "Coba lagi, pasti bisa lebih baik!";
         } else {
-            message = "🎯 Jangan menyerah, terus belajar!";
+            message = "Jangan menyerah, terus belajar!";
         }
         
         messageLabel.setText("<html><center>" + message + "</center></html>");

@@ -24,9 +24,8 @@ public class LeaderboardView extends JPanel {
     private Database database;
     private BufferedImage emptyLeaderboardImage;
     private static final int TOP_LIMIT = 10;
-    private static final double EMPTY_IMAGE_VERTICAL_RATIO = 0.08; // Semakin kecil semakin mendekati atas
+    private static final double EMPTY_IMAGE_VERTICAL_RATIO = 0.08;
     
-    // Filter components
     private JComboBox<String> categoryComboBox;
     private JComboBox<String> difficultyComboBox;
     private JButton filterButton;
@@ -100,7 +99,6 @@ public class LeaderboardView extends JPanel {
         titleLabel.setFont(new Font("Arial Black", Font.BOLD, 48));
         titleLabel.setForeground(Color.WHITE);
         
-        // Create filter panel
         createFilterPanel();
         
         leaderboardPanel = new JPanel();
@@ -157,7 +155,6 @@ public class LeaderboardView extends JPanel {
         }
     });
 
-    // ===== BUTTON FILTER =====
     filterButton = createCartoonButton(" FILTER", Constants.NEO_PINK);
     filterButton.setBounds(530, 10, 160, 50);
 
@@ -166,7 +163,6 @@ public class LeaderboardView extends JPanel {
         loadLeaderboard();
     });
 
-    // ===== BUTTON RESET =====
     JButton resetButton = createCartoonButton(" RESET", Constants.NEO_YELLOW);
     resetButton.setBounds(700, 10, 140, 50);
 
@@ -177,7 +173,6 @@ public class LeaderboardView extends JPanel {
         loadLeaderboard();
     });
 
-    // Add components
     filterPanel.add(categoryComboBox);
     filterPanel.add(difficultyComboBox);
     filterPanel.add(filterButton);
@@ -199,7 +194,6 @@ public class LeaderboardView extends JPanel {
         int titleY = Math.max(30, height / 16);
         titleLabel.setBounds(titleX, titleY, titleWidth, titleHeight);
         
-        // Filter panel below title
         int filterWidth = Math.min(850, width - 100);
         int filterHeight = 70;
         int filterX = (width - filterWidth) / 2;
@@ -324,17 +318,34 @@ public class LeaderboardView extends JPanel {
         panel.setPreferredSize(new Dimension(800, 80));
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
         
-        // Rank label with medal emoji for top 3
         JLabel rankLabel = new JLabel();
         if (entry.getRank() == 1) {
-            rankLabel.setText("🥇");
-            rankLabel.setFont(new Font("Arial", Font.PLAIN, 40));
+            try {
+                ImageIcon icon = new ImageIcon("assets/1.png");
+                Image scaledImage = icon.getImage().getScaledInstance(50, 50, Image.SCALE_SMOOTH);
+                rankLabel.setIcon(new ImageIcon(scaledImage));
+            } catch (Exception e) {
+                rankLabel.setText("#1");
+                rankLabel.setFont(new Font("Arial Black", Font.BOLD, 28));
+            }
         } else if (entry.getRank() == 2) {
-            rankLabel.setText("🥈");
-            rankLabel.setFont(new Font("Arial", Font.PLAIN, 40));
+            try {
+                ImageIcon icon = new ImageIcon("assets/2.png");
+                Image scaledImage = icon.getImage().getScaledInstance(50, 50, Image.SCALE_SMOOTH);
+                rankLabel.setIcon(new ImageIcon(scaledImage));
+            } catch (Exception e) {
+                rankLabel.setText("#2");
+                rankLabel.setFont(new Font("Arial Black", Font.BOLD, 28));
+            }
         } else if (entry.getRank() == 3) {
-            rankLabel.setText("🥉");
-            rankLabel.setFont(new Font("Arial", Font.PLAIN, 40));
+            try {
+                ImageIcon icon = new ImageIcon("assets/3.png");
+                Image scaledImage = icon.getImage().getScaledInstance(50, 50, Image.SCALE_SMOOTH);
+                rankLabel.setIcon(new ImageIcon(scaledImage));
+            } catch (Exception e) {
+                rankLabel.setText("#3");
+                rankLabel.setFont(new Font("Arial Black", Font.BOLD, 28));
+            }
         } else {
             rankLabel.setText("#" + entry.getRank());
             rankLabel.setFont(new Font("Arial Black", Font.BOLD, 28));
@@ -343,31 +354,26 @@ public class LeaderboardView extends JPanel {
         rankLabel.setHorizontalAlignment(SwingConstants.CENTER);
         rankLabel.setBounds(15, 15, 60, 50);
         
-        // Username
         JLabel usernameLabel = new JLabel(entry.getUsername());
         usernameLabel.setFont(new Font("Arial Black", Font.BOLD, 22));
         usernameLabel.setForeground(new Color(13, 37, 103));
         usernameLabel.setBounds(90, 12, 250, 30);
         
-        // Score
         JLabel scoreLabel = new JLabel(entry.getScore() + " pts");
         scoreLabel.setFont(new Font("Arial Black", Font.BOLD, 26));
         scoreLabel.setForeground(Constants.NEO_GREEN);
         scoreLabel.setBounds(370, 10, 150, 35);
         
-        // Questions answered
         JLabel questionsLabel = new JLabel(entry.getQuestionsAnswered() + " soal");
         questionsLabel.setFont(new Font("Arial", Font.BOLD, 16));
         questionsLabel.setForeground(new Color(13, 37, 103, 180));
         questionsLabel.setBounds(90, 42, 120, 25);
         
-        // Accuracy
         JLabel accuracyLabel = new JLabel(String.format("%.1f%%", entry.getAccuracyPercentage()));
         accuracyLabel.setFont(new Font("Arial Black", Font.BOLD, 20));
         accuracyLabel.setForeground(Constants.NEO_BLUE);
         accuracyLabel.setBounds(540, 15, 100, 30);
         
-        // Date
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
         JLabel dateLabel = new JLabel(dateFormat.format(entry.getAchievedAt()));
         dateLabel.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -396,7 +402,6 @@ public class LeaderboardView extends JPanel {
                 g2d.setColor(new Color(0, 0, 0, 100));
                 g2d.fillRoundRect(shadowOffset, shadowOffset, getWidth() - shadowOffset, getHeight() - shadowOffset, 25, 25);
                 
-                // Warna gelap untuk empty state
                 Color topColor = new Color(100, 100, 100, 150);
                 
                 GradientPaint gradient = new GradientPaint(
@@ -417,38 +422,32 @@ public class LeaderboardView extends JPanel {
         panel.setPreferredSize(new Dimension(800, 80));
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
         
-        // Rank label
         JLabel rankLabel = new JLabel("#" + rank);
         rankLabel.setFont(new Font("Arial Black", Font.BOLD, 28));
         rankLabel.setForeground(new Color(150, 150, 150, 120));
         rankLabel.setHorizontalAlignment(SwingConstants.CENTER);
         rankLabel.setBounds(15, 15, 60, 50);
         
-        // Username placeholder
         JLabel usernameLabel = new JLabel("--------");
         usernameLabel.setFont(new Font("Arial Black", Font.BOLD, 22));
         usernameLabel.setForeground(new Color(150, 150, 150, 120));
         usernameLabel.setBounds(90, 12, 250, 30);
         
-        // Score placeholder
         JLabel scoreLabel = new JLabel("--- pts");
         scoreLabel.setFont(new Font("Arial Black", Font.BOLD, 26));
         scoreLabel.setForeground(new Color(150, 150, 150, 120));
         scoreLabel.setBounds(370, 10, 150, 35);
         
-        // Questions placeholder
         JLabel questionsLabel = new JLabel("-- soal");
         questionsLabel.setFont(new Font("Arial", Font.BOLD, 16));
         questionsLabel.setForeground(new Color(150, 150, 150, 100));
         questionsLabel.setBounds(90, 42, 120, 25);
         
-        // Accuracy placeholder
         JLabel accuracyLabel = new JLabel("--.-%");
         accuracyLabel.setFont(new Font("Arial Black", Font.BOLD, 20));
         accuracyLabel.setForeground(new Color(150, 150, 150, 120));
         accuracyLabel.setBounds(540, 15, 100, 30);
         
-        // Date placeholder
         JLabel dateLabel = new JLabel("--/--/----");
         dateLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         dateLabel.setForeground(new Color(150, 150, 150, 100));
@@ -473,7 +472,6 @@ public class LeaderboardView extends JPanel {
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                 
-                // Semi-transparent overlay untuk efek gelap
                 g2d.setColor(new Color(0, 0, 0, 60));
                 g2d.fillRect(0, 0, getWidth(), getHeight());
                 
@@ -567,7 +565,6 @@ public class LeaderboardView extends JPanel {
         comboBox.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
         comboBox.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        // Custom renderer for styling
         comboBox.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index,

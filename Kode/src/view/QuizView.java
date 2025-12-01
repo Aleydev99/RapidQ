@@ -12,10 +12,11 @@ import util.Constants;
 
 public class QuizView extends JPanel {
     
+    private static final int MAX_QUESTIONS_PER_SESSION = 30;
+    
     private final ScreenManager screenManager;
     private final AudioManager audioManager;
     
-    // UI Components
     private JLabel timerLabel;
     private JLabel scoreLabel;
     private JLabel progressLabel;
@@ -27,8 +28,9 @@ public class QuizView extends JPanel {
     private JPanel questionPanel;
     private JLabel hintLabel;
     
-    // Quiz state
     private List<Database.Question> questions;
+    private int totalQuestionsInSession = 0;
+    private boolean[] questionUsed;
     private int currentQuestionIndex = 0;
     private int score = 0;
     private int correctAnswers = 0;
@@ -37,27 +39,27 @@ public class QuizView extends JPanel {
     private boolean quizActive = false;
     private Database.Question nextQuestion = null;
     
-    // Lifelines
     private boolean fiftyFiftyUsed = false;
     private boolean hintUsed = false;
     
-    // Threads
     private Thread timerThread;
     private Thread animationThread;
     private Thread preloadThread;
     
-    // Animation state
     private boolean animatingFiftyFifty = false;
     private int[] fadingOptions = null;
     private float fadeAlpha = 1.0f;
     
-    // Countdown state
     private boolean showingCountdown = false;
     private int countdownNumber = 3;
     private JPanel countdownOverlay;
     
-    // Quiz session
     private int quizSessionId = -1;
+    
+    // Speed bonus tracking
+    private static final int MAX_TIME_PER_QUESTION = 10; // seconds
+    private int questionStartTime = 0;
+    private int totalSpeedBonus = 0;
     
     public QuizView(ScreenManager screenManager) {
         this.screenManager = screenManager;
@@ -107,9 +109,18 @@ public class QuizView extends JPanel {
     }
     
     private void createComponents() {
-        timerLabel = new JLabel("⏱️ 60", SwingConstants.CENTER);
+        timerLabel = new JLabel("60", SwingConstants.CENTER);
         timerLabel.setFont(new Font("Arial Black", Font.BOLD, 32));
         timerLabel.setForeground(Constants.NEO_GREEN);
+        try {
+            ImageIcon clockIcon = new ImageIcon("assets/jam.png");
+            Image scaledClock = clockIcon.getImage().getScaledInstance(40, 40, Image.SCALE_SMOOTH);
+            timerLabel.setIcon(new ImageIcon(scaledClock));
+            timerLabel.setHorizontalTextPosition(SwingConstants.RIGHT);
+            timerLabel.setIconTextGap(10);
+        } catch (Exception e) {
+            timerLabel.setText("⏱️ 60");
+        }
         
         scoreLabel = new JLabel("Score: 0", SwingConstants.CENTER);
         scoreLabel.setFont(new Font("Arial Black", Font.BOLD, 24));
@@ -226,7 +237,7 @@ public class QuizView extends JPanel {
         panel.setLayout(new BorderLayout());
         panel.setOpaque(false);
         
-        questionLabel = new JLabel("<html><center>Loading question...</center></html>", SwingConstants.CENTER);
+        questionLabel = new JLabel("<html><center>Memuat soal...</center></html>", SwingConstants.CENTER);
         questionLabel.setFont(new Font("Arial", Font.BOLD, 20));
         questionLabel.setForeground(new Color(13, 37, 103));
         questionLabel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
@@ -301,8 +312,6 @@ public class QuizView extends JPanel {
         hintButton.setBounds(lifelineStartX + lifelineWidth + lifelineSpacing, lifelineY, lifelineWidth, lifelineHeight);
         skipButton.setBounds(lifelineStartX + (lifelineWidth + lifelineSpacing) * 2, lifelineY, lifelineWidth, lifelineHeight);
     }
-
-    // LANJUTAN QuizView.java - BAGIAN 2
     
     public void startQuiz() {
         currentQuestionIndex = 0;
@@ -313,12 +322,22 @@ public class QuizView extends JPanel {
         fiftyFiftyUsed = false;
         hintUsed = false;
         quizActive = true;
+        totalSpeedBonus = 0;
+        questionStartTime = 0;
+        
+        // Reset UI display
+        timerLabel.setText("60");
+        timerLabel.setForeground(Constants.NEO_GREEN);
+        scoreLabel.setText("Score: 0");
+        progressLabel.setText("");
         
         String category = screenManager.getSelectedCategory();
         String difficulty = screenManager.getSelectedDifficulty();
         
         Database db = Database.getInstance();
-        questions = db.getRandomQuestions(category, difficulty, 100);
+        questions = db.getRandomQuestions(category, difficulty, MAX_QUESTIONS_PER_SESSION);
+        totalQuestionsInSession = questions != null ? Math.min(MAX_QUESTIONS_PER_SESSION, questions.size()) : 0;
+        questionUsed = totalQuestionsInSession > 0 ? new boolean[totalQuestionsInSession] : new boolean[0];
         
         if (questions == null || questions.isEmpty()) {
             JOptionPane.showMessageDialog(this,
@@ -327,6 +346,10 @@ public class QuizView extends JPanel {
                 JOptionPane.ERROR_MESSAGE);
             screenManager.showMainMenu();
             return;
+        }
+        
+        if (questions.size() > totalQuestionsInSession) {
+            questions = new ArrayList<>(questions.subList(0, totalQuestionsInSession));
         }
         
         System.out.println("Loaded " + questions.size() + " questions for quiz session");
@@ -439,7 +462,7 @@ public class QuizView extends JPanel {
     }
     
     private void updateTimerDisplay() {
-        timerLabel.setText("⏱️ " + timeRemaining);
+        timerLabel.setText(String.valueOf(timeRemaining));
         
         if (timeRemaining <= 10) {
             timerLabel.setForeground(Constants.NEO_RED);
@@ -458,7 +481,8 @@ public class QuizView extends JPanel {
         
         Database.Question question = questions.get(currentQuestionIndex);
         
-        progressLabel.setText("Soal " + (currentQuestionIndex + 1));
+        int total = Math.max(totalQuestionsInSession, questions.size());
+        progressLabel.setText("Soal " + (currentQuestionIndex + 1) + " / " + total);
         questionLabel.setText("<html><center>" + question.questionText + "</center></html>");
         
         optionButtons[0].setText("A. " + question.optionA);
@@ -479,7 +503,29 @@ public class QuizView extends JPanel {
         fiftyFiftyButton.setEnabled(!fiftyFiftyUsed);
         hintButton.setEnabled(!hintUsed);
         
+        // Track when question was displayed for speed bonus
+        questionStartTime = timeRemaining;
+        
         repaint();
+    }
+    
+    private void markQuestionAsUsed(int index) {
+        if (questionUsed != null && index >= 0 && index < questionUsed.length) {
+            questionUsed[index] = true;
+        }
+    }
+    
+    private void advanceToNextQuestion() {
+        currentQuestionIndex++;
+        while (questionUsed != null && currentQuestionIndex < totalQuestionsInSession
+                && questionUsed[currentQuestionIndex]) {
+            currentQuestionIndex++;
+        }
+        if (currentQuestionIndex < questions.size()) {
+            displayQuestion();
+        } else {
+            endQuiz();
+        }
     }
     
     private void handleAnswerSelection(int optionIndex) {
@@ -493,16 +539,27 @@ public class QuizView extends JPanel {
         
         if (isCorrect) {
             correctAnswers++;
-            int points = 10;
+            
+            // Calculate base points based on difficulty
+            int basePoints = 10;
             String diff = question.difficulty.toUpperCase();
             if (diff.equals("EASY") || diff.equals("MUDAH")) {
-                points = 10;
+                basePoints = 10;
             } else if (diff.equals("MEDIUM") || diff.equals("SEDANG")) {
-                points = 15;
+                basePoints = 15;
             } else if (diff.equals("HARD") || diff.equals("SULIT")) {
-                points = 25;
+                basePoints = 25;
             }
-            score += points;
+            
+            // Calculate speed bonus
+            int timeSpent = questionStartTime - timeRemaining;
+            int timeLeft = Math.max(0, MAX_TIME_PER_QUESTION - timeSpent);
+            double speedMultiplier = timeLeft / (double) MAX_TIME_PER_QUESTION;
+            int speedBonus = (int) (basePoints * speedMultiplier);
+            totalSpeedBonus += speedBonus;
+            
+            int totalPoints = basePoints + speedBonus;
+            score += totalPoints;
             scoreLabel.setText("Score: " + score);
         } else {
             incorrectAnswers++;
@@ -510,13 +567,8 @@ public class QuizView extends JPanel {
         
         saveAnswerAsync(question.id, selectedAnswer, isCorrect);
         
-        currentQuestionIndex++;
-        
-        if (currentQuestionIndex < questions.size()) {
-            displayQuestion();
-        } else {
-            endQuiz();
-        }
+        markQuestionAsUsed(currentQuestionIndex);
+        advanceToNextQuestion();
     }
     
     private void handleSkip() {
@@ -528,13 +580,9 @@ public class QuizView extends JPanel {
         saveAnswerAsync(question.id, "SKIP", false);
         
         incorrectAnswers++;
-        currentQuestionIndex++;
         
-        if (currentQuestionIndex < questions.size()) {
-            displayQuestion();
-        } else {
-            endQuiz();
-        }
+        markQuestionAsUsed(currentQuestionIndex);
+        advanceToNextQuestion();
     }
     
     private void handleFiftyFifty() {
@@ -636,9 +684,9 @@ public class QuizView extends JPanel {
         String playerName = screenManager.getPlayerName();
         int totalQuestions = correctAnswers + incorrectAnswers;
         double accuracy = totalQuestions > 0 ? (correctAnswers * 100.0 / totalQuestions) : 0;
-        db.addLeaderboard(playerName, quizSessionId, score, totalQuestions, accuracy);
+        db.addLeaderboard(playerName, quizSessionId, score, totalQuestions, accuracy, totalSpeedBonus);
         
-        screenManager.showResult(score, correctAnswers, incorrectAnswers);
+        screenManager.showResult(score, correctAnswers, incorrectAnswers, totalSpeedBonus);
     }
     
     private JButton createOptionButton(String label) {

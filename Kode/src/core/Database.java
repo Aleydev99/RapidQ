@@ -9,8 +9,8 @@ public class Database {
     private Connection connection;
     
     private static final String DB_URL = "jdbc:mysql://localhost:3306/rapidq_db";
-    private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "";
+    private static final String DB_USER = "anon";
+    private static final String DB_PASSWORD = "anon";
     
     private Database() {
         try {
@@ -185,9 +185,9 @@ public class Database {
     }
         
     public boolean addLeaderboard(int playerId, int sessionId, int score, 
-                                  int questionsAnswered, double accuracy) {
-        String query = "INSERT INTO leaderboard (player_id, session_id, score, questions_answered, accuracy_percentage) " +
-                      "VALUES (?, ?, ?, ?, ?)";
+                                  int questionsAnswered, double accuracy, int speedBonus) {
+        String query = "INSERT INTO leaderboard (player_id, session_id, score, questions_answered, accuracy_percentage, speed_bonus) " +
+                      "VALUES (?, ?, ?, ?, ?, ?)";
         
         try (PreparedStatement stmt = connection.prepareStatement(query)) {
             stmt.setInt(1, playerId);
@@ -195,6 +195,7 @@ public class Database {
             stmt.setInt(3, score);
             stmt.setInt(4, questionsAnswered);
             stmt.setDouble(5, accuracy);
+            stmt.setInt(6, speedBonus);
             
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -215,7 +216,6 @@ public class Database {
         queryBuilder.append("JOIN players p ON l.player_id = p.player_id ");
         queryBuilder.append("JOIN quiz_sessions qs ON l.session_id = qs.session_id ");
         
-        // Add filters if provided
         List<String> conditions = new ArrayList<>();
         if (categoryName != null && !categoryName.equals("Semua Kategori")) {
             queryBuilder.append("JOIN categories c ON qs.category_id = c.category_id ");
@@ -296,10 +296,8 @@ public class Database {
         }
     }
     
-    // New methods for QuizView
     public List<Question> getRandomQuestions(String categoryName, String difficulty, int limit) {
         List<Question> questions = new ArrayList<>();
-        // Convert difficulty: MUDAH->EASY, SEDANG->MEDIUM, SULIT->HARD
         String dbDifficulty = convertDifficultyToDb(difficulty);
         
         String query = "SELECT q.* FROM questions q " +
@@ -323,7 +321,7 @@ public class Database {
                     rs.getString("option_c"),
                     rs.getString("option_d"),
                     rs.getString("correct_answer"),
-                    rs.getString("difficulty_level") // Gunakan dari database
+                    rs.getString("difficulty_level")
                 ));
             }
         } catch (SQLException e) {
@@ -344,11 +342,9 @@ public class Database {
     }
     
     public int createSession(String playerName, String categoryName, String difficulty) {
-        // First, get or create player
         int playerId = getOrCreatePlayer(playerName);
         if (playerId == -1) return -1;
         
-        // Get category ID
         int categoryId = getCategoryIdByName(categoryName);
         if (categoryId == -1) return -1;
         
@@ -374,7 +370,6 @@ public class Database {
     }
     
     private int getOrCreatePlayer(String username) {
-        // Check if player exists
         String checkQuery = "SELECT player_id FROM players WHERE username = ?";
         try (PreparedStatement stmt = connection.prepareStatement(checkQuery)) {
             stmt.setString(1, username);
@@ -386,7 +381,6 @@ public class Database {
             e.printStackTrace();
         }
         
-        // Create new player
         return createPlayer(username);
     }
     
@@ -440,11 +434,11 @@ public class Database {
         }
     }
     
-    public boolean addLeaderboard(String playerName, int sessionId, int score, int questionsAnswered, double accuracy) {
+    public boolean addLeaderboard(String playerName, int sessionId, int score, int questionsAnswered, double accuracy, int speedBonus) {
         int playerId = getOrCreatePlayer(playerName);
         if (playerId == -1) return false;
         if (sessionId <= 0) return false;
-        return addLeaderboard(playerId, sessionId, score, questionsAnswered, accuracy);
+        return addLeaderboard(playerId, sessionId, score, questionsAnswered, accuracy, speedBonus);
     }
         
     public static class Category {
@@ -488,7 +482,7 @@ public class Database {
             this.optionC = optionC;
             this.optionD = optionD;
             this.correctAnswer = String.valueOf(correctAnswer);
-            this.difficulty = "medium"; // default
+            this.difficulty = "medium";
         }
         
         public Question(int questionId, int categoryId, String questionText, 

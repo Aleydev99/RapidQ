@@ -29,12 +29,6 @@ public class DifficultySelectionView extends JPanel {
         "Untuk Kelas 5-6 SD"
     };
     
-    private static final String[] DIFFICULTY_STARS = {
-        "⭐",
-        "⭐⭐",
-        "⭐⭐⭐"
-    };
-    
     private static final Color[] DIFFICULTY_COLORS = {
         Constants.NEO_GREEN,    // Mudah
         Constants.NEO_YELLOW,   // Sedang
@@ -77,7 +71,6 @@ public class DifficultySelectionView extends JPanel {
         g2d.setPaint(gradient);
         g2d.fillRect(0, 0, getWidth(), getHeight());
         
-        // Floating rays effect
         g2d.setColor(new Color(255, 255, 255, 30));
         g2d.setStroke(new BasicStroke(3));
         for (int i = 0; i < 16; i++) {
@@ -89,27 +82,23 @@ public class DifficultySelectionView extends JPanel {
     }
     
     private void createComponents() {
-        // Title
         titleLabel = new JLabel("PILIH TINGKAT KESULITAN", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Arial Black", Font.BOLD, 42));
         titleLabel.setForeground(Color.WHITE);
         
-        // Subtitle
         subtitleLabel = new JLabel("Pilih tingkat yang sesuai dengan kemampuanmu", SwingConstants.CENTER);
         subtitleLabel.setFont(new Font("Arial", Font.BOLD, 16));
         subtitleLabel.setForeground(new Color(255, 255, 255, 200));
         
-        // Category label - will be updated when shown
         categoryLabel = new JLabel("", SwingConstants.CENTER);
         categoryLabel.setFont(new Font("Arial Black", Font.BOLD, 24));
         categoryLabel.setForeground(Constants.NEO_YELLOW);
         
-        // Difficulty buttons
         difficultyButtons = new JButton[DIFFICULTIES.length];
         for (int i = 0; i < DIFFICULTIES.length; i++) {
             final int index = i;
             difficultyButtons[i] = createDifficultyButton(
-                DIFFICULTY_STARS[i] + " " + DIFFICULTIES[i],
+                DIFFICULTIES[i],
                 DIFFICULTY_DESCRIPTIONS[i],
                 DIFFICULTY_COLORS[i]
             );
@@ -119,7 +108,6 @@ public class DifficultySelectionView extends JPanel {
             });
         }
         
-        // Back button
         backButton = createCartoonButton("← KEMBALI", Constants.NEO_BLUE);
         backButton.addActionListener(e -> {
             audioManager.playSFX("assets/click.wav");
@@ -141,28 +129,24 @@ public class DifficultySelectionView extends JPanel {
         int width = Math.max(getWidth(), Constants.WINDOW_SIZE.width);
         int height = Math.max(getHeight(), Constants.WINDOW_SIZE.height);
         
-        // Title
         int titleWidth = 800;
         int titleHeight = 60;
         int titleX = (width - titleWidth) / 2;
         int titleY = Math.max(40, height / 14);
         titleLabel.setBounds(titleX, titleY, titleWidth, titleHeight);
         
-        // Subtitle
         int subtitleWidth = 600;
         int subtitleHeight = 25;
         int subtitleX = (width - subtitleWidth) / 2;
         int subtitleY = titleY + titleHeight + 5;
         subtitleLabel.setBounds(subtitleX, subtitleY, subtitleWidth, subtitleHeight);
         
-        // Category label
         int categoryWidth = 500;
         int categoryHeight = 35;
         int categoryX = (width - categoryWidth) / 2;
         int categoryY = subtitleY + subtitleHeight + 20;
         categoryLabel.setBounds(categoryX, categoryY, categoryWidth, categoryHeight);
         
-        // Difficulty buttons - vertical stack centered
         int buttonWidth = 400;
         int buttonHeight = 110;
         int verticalSpacing = 25;
@@ -174,7 +158,6 @@ public class DifficultySelectionView extends JPanel {
             difficultyButtons[i].setBounds(startX, buttonY, buttonWidth, buttonHeight);
         }
         
-        // Back button
         int backWidth = 200;
         int backHeight = 60;
         int backX = 50;
@@ -190,7 +173,7 @@ public class DifficultySelectionView extends JPanel {
     public void updateCategoryDisplay() {
         String category = screenManager.getSelectedCategory();
         if (category != null) {
-            categoryLabel.setText("📚 " + category);
+            categoryLabel.setText(category);
         }
     }
     
@@ -206,7 +189,6 @@ public class DifficultySelectionView extends JPanel {
                 Boolean isHoveredObj = (Boolean) getClientProperty("isHovered");
                 boolean isHovered = isHoveredObj != null && isHoveredObj;
                 
-                // Shadow
                 g2d.setColor(new Color(0, 0, 0, 100));
                 g2d.fillRoundRect(Constants.SHADOW_OFFSET, Constants.SHADOW_OFFSET,
                     getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET,
@@ -239,7 +221,6 @@ public class DifficultySelectionView extends JPanel {
                     );
                 }
                 
-                // Gradient background
                 GradientPaint gradient = new GradientPaint(
                     0, 0, lightColor,
                     0, getHeight() - Constants.SHADOW_OFFSET, darkColor
@@ -249,14 +230,12 @@ public class DifficultySelectionView extends JPanel {
                     getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET,
                     Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
                 
-                // Highlight
                 int highlightAlpha = pressed ? 40 : 80;
                 g2d.setColor(new Color(255, 255, 255, highlightAlpha));
                 g2d.fillRoundRect(5, 5,
                     getWidth() - Constants.SHADOW_OFFSET - 10, (getHeight() - Constants.SHADOW_OFFSET) / 2 - 5,
                     Constants.BORDER_RADIUS - 5, Constants.BORDER_RADIUS - 5);
                 
-                // Border
                 int outlineAlpha = pressed ? 150 : 255;
                 g2d.setColor(new Color(255, 255, 255, outlineAlpha));
                 g2d.setStroke(new BasicStroke(Constants.BORDER_THICKNESS));
@@ -264,33 +243,27 @@ public class DifficultySelectionView extends JPanel {
                     getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET,
                     Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
                 
-                // Main text
                 g2d.setFont(new Font("Arial Black", Font.BOLD, 28));
                 FontMetrics mainFm = g2d.getFontMetrics();
                 int mainX = (getWidth() - Constants.SHADOW_OFFSET - mainFm.stringWidth(mainText)) / 2;
                 int mainY = ((getHeight() - Constants.SHADOW_OFFSET) / 2) - 10;
                 
-                // Main text shadow
                 int textShadowAlpha = pressed ? 50 : 100;
                 g2d.setColor(new Color(0, 0, 0, textShadowAlpha));
                 g2d.drawString(mainText, mainX + 2, mainY + 2);
                 
-                // Main text
                 int textAlpha = pressed ? 180 : 255;
                 g2d.setColor(new Color(255, 255, 255, textAlpha));
                 g2d.drawString(mainText, mainX, mainY);
                 
-                // Description text
                 g2d.setFont(new Font("Arial", Font.BOLD, 16));
                 FontMetrics descFm = g2d.getFontMetrics();
                 int descX = (getWidth() - Constants.SHADOW_OFFSET - descFm.stringWidth(description)) / 2;
                 int descY = mainY + 35;
                 
-                // Description shadow
                 g2d.setColor(new Color(0, 0, 0, textShadowAlpha));
                 g2d.drawString(description, descX + 1, descY + 1);
                 
-                // Description text (slightly transparent)
                 int descAlpha = pressed ? 150 : 220;
                 g2d.setColor(new Color(255, 255, 255, descAlpha));
                 g2d.drawString(description, descX, descY);

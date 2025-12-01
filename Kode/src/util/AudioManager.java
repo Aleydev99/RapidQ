@@ -13,9 +13,10 @@ public class AudioManager {
     private float sfxVolume = 0.25f;
     private boolean isBgmPlaying = false;
     
-    private AudioManager() {
-        // Private constructor for singleton
-    }
+    private Thread bgmThread;
+    private volatile boolean shouldStopBgm = false;
+    
+    private AudioManager() {}
     
     public static AudioManager getInstance() {
         if (instance == null) {
@@ -25,50 +26,69 @@ public class AudioManager {
     }
     
     public void playBGM(String filePath) {
-        try {
-            if (bgmClip != null && bgmClip.isRunning()) {
-                bgmClip.stop();
-                bgmClip.close();
+        stopBGM();
+        
+        shouldStopBgm = false;
+        
+        bgmThread = new Thread(() -> {
+            try {
+                File audioFile = new File(filePath);
+                if (!audioFile.exists()) {
+                    System.err.println("Audio file not found: " + filePath);
+                    return;
+                }
+                
+                AudioInputStream audioStream = AudioSystem.getAudioInputStream(audioFile);
+                bgmClip = AudioSystem.getClip();
+                bgmClip.open(audioStream);
+                
+                if (bgmClip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                    bgmVolumeControl = (FloatControl) bgmClip.getControl(FloatControl.Type.MASTER_GAIN);
+                    setBGMVolume(bgmVolume);
+                }
+                
+                bgmClip.loop(Clip.LOOP_CONTINUOUSLY);
+                bgmClip.start();
+                isBgmPlaying = true;
+                
+                System.out.println("BGM started in dedicated thread: " + filePath);
+                
+                while (!shouldStopBgm && bgmClip != null && bgmClip.isRunning()) {
+                    Thread.sleep(100);
+                }
+                
+            } catch (UnsupportedAudioFileException e) {
+                System.err.println("Unsupported audio format: " + filePath);
+                e.printStackTrace();
+            } catch (IOException e) {
+                System.err.println("Error reading audio file: " + filePath);
+                e.printStackTrace();
+            } catch (LineUnavailableException e) {
+                System.err.println("Audio line unavailable");
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                System.out.println("BGM thread interrupted");
             }
-            
-            File audioFile = new File(filePath);
-            if (!audioFile.exists()) {
-                System.err.println("Audio file not found: " + filePath);
-                return;
-            }
-            
-            AudioInputStream audioStream = AudioSystem.getAudioInputStream(audioFile);
-            bgmClip = AudioSystem.getClip();
-            bgmClip.open(audioStream);
-            
-            if (bgmClip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
-                bgmVolumeControl = (FloatControl) bgmClip.getControl(FloatControl.Type.MASTER_GAIN);
-                setBGMVolume(bgmVolume);
-            }
-            
-            bgmClip.loop(Clip.LOOP_CONTINUOUSLY);
-            bgmClip.start();
-            isBgmPlaying = true;
-            
-            System.out.println("BGM started: " + filePath);
-            
-        } catch (UnsupportedAudioFileException e) {
-            System.err.println("Unsupported audio format: " + filePath);
-            e.printStackTrace();
-        } catch (IOException e) {
-            System.err.println("Error reading audio file: " + filePath);
-            e.printStackTrace();
-        } catch (LineUnavailableException e) {
-            System.err.println("Audio line unavailable");
-            e.printStackTrace();
-        }
+        }, "BGM-Thread");
+        
+        bgmThread.start();
     }
 
     public void stopBGM() {
+        shouldStopBgm = true;
+        
         if (bgmClip != null && bgmClip.isRunning()) {
             bgmClip.stop();
             isBgmPlaying = false;
             System.out.println("BGM stopped");
+        }
+        
+        if (bgmThread != null && bgmThread.isAlive()) {
+            try {
+                bgmThread.join(500);
+            } catch (InterruptedException e) {
+                bgmThread.interrupt();
+            }
         }
     }
 
@@ -109,7 +129,7 @@ public class AudioManager {
     }
 
     public void playSFX(String filePath) {
-        new Thread(() -> {
+        Thread sfxThread = new Thread(() -> {
             try {
                 File audioFile = new File(filePath);
                 if (!audioFile.exists()) {
@@ -135,11 +155,17 @@ public class AudioManager {
                 
                 sfxClip.start();
                 
+                while (sfxClip.isRunning()) {
+                    Thread.sleep(10);
+                }
+                
             } catch (Exception e) {
                 System.err.println("Error playing SFX: " + filePath);
                 e.printStackTrace();
             }
-        }).start();
+        }, "SFX-Thread");
+        
+        sfxThread.start();
     }
 
     public void setSFXVolume(float volume) {
@@ -164,9 +190,15 @@ public class AudioManager {
     }
 
     public void cleanup() {
+        shouldStopBgm = true;
+        
         if (bgmClip != null) {
             bgmClip.stop();
             bgmClip.close();
+        }
+        
+        if (bgmThread != null && bgmThread.isAlive()) {
+            bgmThread.interrupt();
         }
     }
     

@@ -57,7 +57,6 @@ public class UsernameInputView extends JPanel {
         g2d.setPaint(gradient);
         g2d.fillRect(0, 0, getWidth(), getHeight());
         
-        // Floating rays effect
         g2d.setColor(new Color(255, 255, 255, 30));
         g2d.setStroke(new BasicStroke(3));
         for (int i = 0; i < 16; i++) {
@@ -69,26 +68,21 @@ public class UsernameInputView extends JPanel {
     }
     
     private void createComponents() {
-        // Title
         titleLabel = new JLabel("MASUKKAN NAMAMU", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Arial Black", Font.BOLD, 42));
         titleLabel.setForeground(Color.WHITE);
         
-        // Instruction
         instructionLabel = new JLabel("Nama akan ditampilkan di Leaderboard", SwingConstants.CENTER);
         instructionLabel.setFont(new Font("Arial", Font.BOLD, 16));
         instructionLabel.setForeground(new Color(255, 255, 255, 200));
         
-        // Input panel
         inputPanel = createInputPanel();
         
-        // Error label
         errorLabel = new JLabel("", SwingConstants.CENTER);
         errorLabel.setFont(new Font("Arial", Font.BOLD, 14));
         errorLabel.setForeground(Constants.NEO_RED);
         errorLabel.setVisible(false);
         
-        // Buttons
         startButton = createCartoonButton("MULAI!", Constants.NEO_GREEN);
         startButton.addActionListener(e -> handleStartButton());
         
@@ -106,12 +100,9 @@ public class UsernameInputView extends JPanel {
                 super.paintComponent(g);
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Shadow
                 g2d.setColor(new Color(0, 0, 0, 100));
                 g2d.fillRoundRect(8, 8, getWidth() - 16, getHeight() - 16, 30, 30);
                 
-                // Background gradient
                 GradientPaint gradient = new GradientPaint(
                     0, 0, new Color(255, 255, 255, 200),
                     0, getHeight(), new Color(255, 255, 255, 150)
@@ -119,7 +110,6 @@ public class UsernameInputView extends JPanel {
                 g2d.setPaint(gradient);
                 g2d.fillRoundRect(0, 0, getWidth() - 16, getHeight() - 16, 30, 30);
                 
-                // Border
                 g2d.setColor(Constants.NEO_WHITE);
                 g2d.setStroke(new BasicStroke(4));
                 g2d.drawRoundRect(2, 2, getWidth() - 20, getHeight() - 20, 26, 26);
@@ -129,18 +119,23 @@ public class UsernameInputView extends JPanel {
         panel.setLayout(null);
         panel.setOpaque(false);
         
-        // Icon/Emoji
-        JLabel iconLabel = new JLabel("👤", SwingConstants.CENTER);
-        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 60));
+        JLabel iconLabel = new JLabel();
+        iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        try {
+            ImageIcon originalIcon = new ImageIcon("assets/profil.png");
+            Image scaledImage = originalIcon.getImage().getScaledInstance(80, 80, Image.SCALE_SMOOTH);
+            iconLabel.setIcon(new ImageIcon(scaledImage));
+        } catch (Exception e) {
+            iconLabel.setText("👤");
+            iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 60));
+        }
         iconLabel.setBounds(0, 30, 500, 80);
         
-        // Name label
         JLabel nameLabel = new JLabel("Nama:", SwingConstants.CENTER);
         nameLabel.setFont(new Font("Arial Black", Font.BOLD, 20));
         nameLabel.setForeground(new Color(13, 37, 103));
         nameLabel.setBounds(50, 130, 400, 30);
         
-        // Text field
         nameTextField = new JTextField();
         nameTextField.setFont(new Font("Arial", Font.BOLD, 24));
         nameTextField.setHorizontalAlignment(JTextField.CENTER);
@@ -150,20 +145,17 @@ public class UsernameInputView extends JPanel {
         ));
         nameTextField.setBounds(75, 170, 350, 55);
         
-        // Character limit label
         JLabel limitLabel = new JLabel("Min. 3 karakter, Max. 20 karakter", SwingConstants.CENTER);
         limitLabel.setFont(new Font("Arial", Font.PLAIN, 12));
         limitLabel.setForeground(new Color(13, 37, 103, 150));
         limitLabel.setBounds(50, 235, 400, 20);
         
-        // Add enter key listener
         nameTextField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                     handleStartButton();
                 }
-                // Hide error when typing
                 if (errorLabel.isVisible()) {
                     errorLabel.setVisible(false);
                 }
@@ -191,46 +183,39 @@ public class UsernameInputView extends JPanel {
         int width = Math.max(getWidth(), Constants.WINDOW_SIZE.width);
         int height = Math.max(getHeight(), Constants.WINDOW_SIZE.height);
         
-        // Title
         int titleWidth = 600;
         int titleHeight = 60;
         int titleX = (width - titleWidth) / 2;
         int titleY = Math.max(50, height / 12);
         titleLabel.setBounds(titleX, titleY, titleWidth, titleHeight);
         
-        // Instruction
         int instrWidth = 500;
         int instrHeight = 25;
         int instrX = (width - instrWidth) / 2;
         int instrY = titleY + titleHeight + 10;
         instructionLabel.setBounds(instrX, instrY, instrWidth, instrHeight);
         
-        // Input panel
         int panelWidth = 500;
         int panelHeight = 280;
         int panelX = (width - panelWidth) / 2;
         int panelY = instrY + instrHeight + 40;
         inputPanel.setBounds(panelX, panelY, panelWidth, panelHeight);
         
-        // Error label
         int errorWidth = 400;
         int errorHeight = 25;
         int errorX = (width - errorWidth) / 2;
         int errorY = panelY + panelHeight + 10;
         errorLabel.setBounds(errorX, errorY, errorWidth, errorHeight);
         
-        // Buttons - positioned side by side
         int buttonWidth = 220;
         int buttonHeight = 70;
         int buttonSpacing = 30;
         int totalButtonWidth = (buttonWidth * 2) + buttonSpacing;
         int buttonY = errorY + errorHeight + 30;
         
-        // Back button (left)
         int backX = (width - totalButtonWidth) / 2;
         backButton.setBounds(backX, buttonY, buttonWidth, buttonHeight);
         
-        // Start button (right)
         int startX = backX + buttonWidth + buttonSpacing;
         startButton.setBounds(startX, buttonY, buttonWidth, buttonHeight);
     }
@@ -238,7 +223,6 @@ public class UsernameInputView extends JPanel {
     private void handleStartButton() {
         String username = nameTextField.getText().trim();
         
-        // Validation
         if (username.isEmpty()) {
             showError("Nama tidak boleh kosong!");
             audioManager.playSFX("assets/click.wav");
@@ -257,14 +241,13 @@ public class UsernameInputView extends JPanel {
             return;
         }
         
-        // Valid - proceed to category selection
         audioManager.playSFX("assets/click.wav");
         screenManager.setPlayerName(username);
         screenManager.showCategorySelection();
     }
     
     private void showError(String message) {
-        errorLabel.setText("⚠️ " + message);
+        errorLabel.setText(message);
         errorLabel.setVisible(true);
     }
     

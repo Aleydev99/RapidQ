@@ -23,15 +23,7 @@ public class CategorySelectionView extends JPanel {
         "IPS",
         "Bahasa Inggris"
     };
-    
-    private static final String[] CATEGORY_EMOJIS = {
-        "🔢",
-        "📖",
-        "🔬",
-        "🌍",
-        "🇬🇧"
-    };
-    
+
     private static final Color[] CATEGORY_COLORS = {
         Constants.NEO_BLUE,      // Matematika
         Constants.NEO_PINK,      // Bahasa Indonesia
@@ -76,7 +68,6 @@ public class CategorySelectionView extends JPanel {
         g2d.setPaint(gradient);
         g2d.fillRect(0, 0, getWidth(), getHeight());
         
-        // Floating rays effect
         g2d.setColor(new Color(255, 255, 255, 30));
         g2d.setStroke(new BasicStroke(3));
         for (int i = 0; i < 16; i++) {
@@ -88,22 +79,19 @@ public class CategorySelectionView extends JPanel {
     }
     
     private void createComponents() {
-        // Title
         titleLabel = new JLabel("PILIH KATEGORI", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Arial Black", Font.BOLD, 48));
         titleLabel.setForeground(Color.WHITE);
         
-        // Subtitle
         subtitleLabel = new JLabel("Pilih mata pelajaran yang ingin kamu mainkan", SwingConstants.CENTER);
         subtitleLabel.setFont(new Font("Arial", Font.BOLD, 16));
         subtitleLabel.setForeground(new Color(255, 255, 255, 200));
         
-        // Category buttons
         categoryButtons = new JButton[CATEGORIES.length];
         for (int i = 0; i < CATEGORIES.length; i++) {
             final int index = i;
             categoryButtons[i] = createCategoryButton(
-                CATEGORY_EMOJIS[i] + " " + CATEGORIES[i],
+                CATEGORIES[i],
                 CATEGORY_COLORS[i]
             );
             categoryButtons[i].addActionListener(e -> {
@@ -112,7 +100,6 @@ public class CategorySelectionView extends JPanel {
             });
         }
         
-        // Back button
         backButton = createCartoonButton("← KEMBALI", Constants.NEO_RED);
         backButton.addActionListener(e -> {
             audioManager.playSFX("assets/click.wav");
@@ -133,21 +120,18 @@ public class CategorySelectionView extends JPanel {
         int width = Math.max(getWidth(), Constants.WINDOW_SIZE.width);
         int height = Math.max(getHeight(), Constants.WINDOW_SIZE.height);
         
-        // Title
         int titleWidth = 700;
         int titleHeight = 70;
         int titleX = (width - titleWidth) / 2;
         int titleY = Math.max(40, height / 14);
         titleLabel.setBounds(titleX, titleY, titleWidth, titleHeight);
         
-        // Subtitle
         int subtitleWidth = 600;
         int subtitleHeight = 25;
         int subtitleX = (width - subtitleWidth) / 2;
         int subtitleY = titleY + titleHeight + 5;
         subtitleLabel.setBounds(subtitleX, subtitleY, subtitleWidth, subtitleHeight);
         
-        // Category buttons - 2 columns layout
         int buttonWidth = 300;
         int buttonHeight = 90;
         int horizontalSpacing = 40;
@@ -156,21 +140,17 @@ public class CategorySelectionView extends JPanel {
         int startX = (width - totalButtonsWidth) / 2;
         int startY = subtitleY + subtitleHeight + 60;
         
-        // First row - 2 buttons
         categoryButtons[0].setBounds(startX, startY, buttonWidth, buttonHeight);
         categoryButtons[1].setBounds(startX + buttonWidth + horizontalSpacing, startY, buttonWidth, buttonHeight);
         
-        // Second row - 2 buttons
         int row2Y = startY + buttonHeight + verticalSpacing;
         categoryButtons[2].setBounds(startX, row2Y, buttonWidth, buttonHeight);
         categoryButtons[3].setBounds(startX + buttonWidth + horizontalSpacing, row2Y, buttonWidth, buttonHeight);
         
-        // Third row - 1 button centered
         int row3Y = row2Y + buttonHeight + verticalSpacing;
         int centerButtonX = (width - buttonWidth) / 2;
         categoryButtons[4].setBounds(centerButtonX, row3Y, buttonWidth, buttonHeight);
         
-        // Back button
         int backWidth = 200;
         int backHeight = 60;
         int backX = 50;
@@ -195,7 +175,6 @@ public class CategorySelectionView extends JPanel {
                 Boolean isHoveredObj = (Boolean) getClientProperty("isHovered");
                 boolean isHovered = isHoveredObj != null && isHoveredObj;
                 
-                // Shadow
                 g2d.setColor(new Color(0, 0, 0, 100));
                 g2d.fillRoundRect(Constants.SHADOW_OFFSET, Constants.SHADOW_OFFSET,
                     getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET,
@@ -228,7 +207,6 @@ public class CategorySelectionView extends JPanel {
                     );
                 }
                 
-                // Gradient background
                 GradientPaint gradient = new GradientPaint(
                     0, 0, lightColor,
                     0, getHeight() - Constants.SHADOW_OFFSET, darkColor
@@ -238,14 +216,12 @@ public class CategorySelectionView extends JPanel {
                     getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET,
                     Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
                 
-                // Highlight
                 int highlightAlpha = pressed ? 40 : 80;
                 g2d.setColor(new Color(255, 255, 255, highlightAlpha));
                 g2d.fillRoundRect(5, 5,
                     getWidth() - Constants.SHADOW_OFFSET - 10, (getHeight() - Constants.SHADOW_OFFSET) / 2 - 5,
                     Constants.BORDER_RADIUS - 5, Constants.BORDER_RADIUS - 5);
                 
-                // Border
                 int outlineAlpha = pressed ? 150 : 255;
                 g2d.setColor(new Color(255, 255, 255, outlineAlpha));
                 g2d.setStroke(new BasicStroke(Constants.BORDER_THICKNESS));
@@ -253,18 +229,15 @@ public class CategorySelectionView extends JPanel {
                     getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET,
                     Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
                 
-                // Text
                 g2d.setFont(getFont());
                 FontMetrics fm = g2d.getFontMetrics();
                 int x = (getWidth() - Constants.SHADOW_OFFSET - fm.stringWidth(getText())) / 2;
                 int y = ((getHeight() - Constants.SHADOW_OFFSET - fm.getHeight()) / 2) + fm.getAscent();
                 
-                // Text shadow
                 int textShadowAlpha = pressed ? 50 : 100;
                 g2d.setColor(new Color(0, 0, 0, textShadowAlpha));
                 g2d.drawString(getText(), x + 2, y + 2);
                 
-                // Text
                 int textAlpha = pressed ? 180 : 255;
                 g2d.setColor(new Color(255, 255, 255, textAlpha));
                 g2d.drawString(getText(), x, y);

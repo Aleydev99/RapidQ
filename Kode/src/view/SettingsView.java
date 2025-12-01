@@ -6,8 +6,8 @@ import java.awt.event.MouseEvent;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import util.Constants;
 import util.AudioManager;
+import util.Constants;
 
 public class SettingsView extends JPanel {
     
@@ -94,7 +94,6 @@ public class SettingsView extends JPanel {
         bgmVolumeSlider.setForeground(new Color(13, 37, 103));
         bgmVolumeSlider.setFont(new Font("Arial", Font.BOLD, 12));
         
-        // Add listener untuk update volume BGM real-time
         bgmVolumeSlider.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
@@ -112,7 +111,6 @@ public class SettingsView extends JPanel {
         sfxVolumeSlider.setForeground(new Color(13, 37, 103));
         sfxVolumeSlider.setFont(new Font("Arial", Font.BOLD, 12));
         
-        // Add listener untuk update volume SFX real-time
         sfxVolumeSlider.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
