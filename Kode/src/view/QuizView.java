@@ -17,7 +17,9 @@ public class QuizView extends JPanel {
     private final ScreenManager screenManager;
     private final AudioManager audioManager;
     
+    // UI Components
     private JLabel timerLabel;
+    private JLabel speedBonusLabel;
     private JLabel scoreLabel;
     private JLabel progressLabel;
     private JLabel questionLabel;
@@ -28,6 +30,7 @@ public class QuizView extends JPanel {
     private JPanel questionPanel;
     private JLabel hintLabel;
     
+    // Data & Logic
     private List<Database.Question> questions;
     private int totalQuestionsInSession = 0;
     private boolean[] questionUsed;
@@ -42,10 +45,12 @@ public class QuizView extends JPanel {
     private boolean fiftyFiftyUsed = false;
     private boolean hintUsed = false;
     
+    // Threads
     private Thread timerThread;
     private Thread animationThread;
     private Thread preloadThread;
     
+    // Animation States
     private boolean animatingFiftyFifty = false;
     private int[] fadingOptions = null;
     private float fadeAlpha = 1.0f;
@@ -56,8 +61,8 @@ public class QuizView extends JPanel {
     
     private int quizSessionId = -1;
     
-    // Speed bonus tracking
-    private static final int MAX_TIME_PER_QUESTION = 10; // seconds
+    // Speed Bonus Logic
+    private static final int MAX_TIME_PER_QUESTION = 10;
     private int questionStartTime = 0;
     private int totalSpeedBonus = 0;
     
@@ -67,8 +72,10 @@ public class QuizView extends JPanel {
         setLayout(null);
         setOpaque(false);
         setPreferredSize(Constants.WINDOW_SIZE);
+        
         createComponents();
         createCountdownOverlay();
+        
         setupLayout();
         layoutComponents();
         
@@ -86,6 +93,7 @@ public class QuizView extends JPanel {
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
+        // 1. Background Radial
         int centerX = getWidth() / 2;
         int centerY = getHeight() / 2;
         float radius = Math.max(getWidth(), getHeight());
@@ -98,6 +106,7 @@ public class QuizView extends JPanel {
         g2d.setPaint(gradient);
         g2d.fillRect(0, 0, getWidth(), getHeight());
         
+        // 2. Garis-garis Background
         g2d.setColor(new Color(255, 255, 255, 30));
         g2d.setStroke(new BasicStroke(3));
         for (int i = 0; i < 16; i++) {
@@ -105,6 +114,45 @@ public class QuizView extends JPanel {
             int x2 = centerX + (int)(Math.cos(angle) * radius);
             int y2 = centerY + (int)(Math.sin(angle) * radius);
             g2d.drawLine(centerX, centerY, x2, y2);
+        }
+
+        // 3. VISUALISASI SPEED BONUS BAR (GOLD BAR)
+        // Ditambahkan !showingCountdown agar bar tidak muncul saat hitungan mundur
+        if (quizActive && !showingCountdown && questionPanel != null) {
+            int timeSpent = questionStartTime - timeRemaining;
+            
+            // Cek apakah masih dalam periode bonus (10 detik pertama)
+            if (timeSpent >= 0 && timeSpent < MAX_TIME_PER_QUESTION) {
+                int bonusMaxTime = MAX_TIME_PER_QUESTION; 
+                int timeLeftInBonus = bonusMaxTime - timeSpent;
+                
+                int barWidth = questionPanel.getWidth(); 
+                int barHeight = 10;
+                int barX = questionPanel.getX();
+                int barY = questionPanel.getY() - 20;
+                
+                // --- PERBAIKAN: CLAMP PERCENTAGE ---
+                double percentage = (double) timeLeftInBonus / bonusMaxTime;
+                percentage = Math.min(1.0, Math.max(0.0, percentage)); // Pastikan max 100%
+                
+                int currentBarWidth = (int) (barWidth * percentage);
+                
+                // Background bar (abu-abu tipis) - Agar terlihat wadahnya
+                g2d.setColor(new Color(255, 255, 255, 50));
+                g2d.fillRoundRect(barX, barY, barWidth, barHeight, 10, 10);
+                
+                // Foreground bar (Gradient Emas)
+                GradientPaint goldGradient = new GradientPaint(
+                    barX, barY, new Color(255, 215, 0), // Emas Terang
+                    barX + currentBarWidth, barY, new Color(255, 140, 0) // Oranye Emas
+                );
+                g2d.setPaint(goldGradient);
+                g2d.fillRoundRect(barX, barY, currentBarWidth, barHeight, 10, 10);
+                
+                // Efek Kilau Putih
+                g2d.setColor(new Color(255, 255, 255, 100));
+                g2d.fillRoundRect(barX, barY, currentBarWidth, barHeight/2, 10, 10);
+            }
         }
     }
     
@@ -121,6 +169,20 @@ public class QuizView extends JPanel {
         } catch (Exception e) {
             timerLabel.setText("⏱️ 60");
         }
+        
+        speedBonusLabel = new JLabel("", SwingConstants.CENTER);
+        speedBonusLabel.setFont(new Font("Arial Black", Font.BOLD, 22));
+        speedBonusLabel.setForeground(Constants.NEO_ORANGE);
+        speedBonusLabel.setVisible(false);
+        try {
+            ImageIcon lightningIcon = new ImageIcon("assets/petir.png");
+            Image scaledLightning = lightningIcon.getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH);
+            speedBonusLabel.setIcon(new ImageIcon(scaledLightning));
+            speedBonusLabel.setIconTextGap(8);
+        } catch (Exception e) {
+            speedBonusLabel.setText("⚡");
+        }
+        
         
         scoreLabel = new JLabel("Score: 0", SwingConstants.CENTER);
         scoreLabel.setFont(new Font("Arial Black", Font.BOLD, 24));
@@ -157,7 +219,6 @@ public class QuizView extends JPanel {
                 super.paintComponent(g);
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
                 
                 g2d.setColor(new Color(0, 0, 0, 180));
                 g2d.fillRect(0, 0, getWidth(), getHeight());
@@ -197,7 +258,6 @@ public class QuizView extends JPanel {
                 
                 g2d.setColor(new Color(0, 0, 0, 150));
                 g2d.drawString(readyText, readyX + 3, readyY + 3);
-                
                 g2d.setColor(Constants.NEO_PINK);
                 g2d.drawString(readyText, readyX, readyY);
             }
@@ -205,7 +265,6 @@ public class QuizView extends JPanel {
         
         countdownOverlay.setOpaque(false);
         countdownOverlay.setVisible(false);
-        countdownOverlay.setBounds(0, 0, Constants.WINDOW_SIZE.width, Constants.WINDOW_SIZE.height);
         add(countdownOverlay);
         setComponentZOrder(countdownOverlay, 0);
     }
@@ -256,6 +315,7 @@ public class QuizView extends JPanel {
     
     private void setupLayout() {
         add(timerLabel);
+        add(speedBonusLabel);
         add(scoreLabel);
         add(progressLabel);
         add(questionPanel);
@@ -271,11 +331,11 @@ public class QuizView extends JPanel {
         int width = Math.max(getWidth(), Constants.WINDOW_SIZE.width);
         int height = Math.max(getHeight(), Constants.WINDOW_SIZE.height);
         
-        if (countdownOverlay != null) {
-            countdownOverlay.setBounds(0, 0, width, height);
-        }
+        if (countdownOverlay != null) countdownOverlay.setBounds(0, 0, width, height);
         
-        timerLabel.setBounds(40, 30, 120, 50);
+        timerLabel.setBounds(40, 20, 120, 50);
+        speedBonusLabel.setBounds(40, 65, 120, 30);
+        
         scoreLabel.setBounds(width - 200, 30, 160, 40);
         progressLabel.setBounds((width - 200) / 2, 90, 200, 25);
         
@@ -312,7 +372,7 @@ public class QuizView extends JPanel {
         hintButton.setBounds(lifelineStartX + lifelineWidth + lifelineSpacing, lifelineY, lifelineWidth, lifelineHeight);
         skipButton.setBounds(lifelineStartX + (lifelineWidth + lifelineSpacing) * 2, lifelineY, lifelineWidth, lifelineHeight);
     }
-    
+
     public void startQuiz() {
         currentQuestionIndex = 0;
         score = 0;
@@ -325,9 +385,12 @@ public class QuizView extends JPanel {
         totalSpeedBonus = 0;
         questionStartTime = 0;
         
-        // Reset UI display
         timerLabel.setText("60");
         timerLabel.setForeground(Constants.NEO_GREEN);
+        
+        speedBonusLabel.setText("");
+        speedBonusLabel.setVisible(false);
+        
         scoreLabel.setText("Score: 0");
         progressLabel.setText("");
         
@@ -340,10 +403,7 @@ public class QuizView extends JPanel {
         questionUsed = totalQuestionsInSession > 0 ? new boolean[totalQuestionsInSession] : new boolean[0];
         
         if (questions == null || questions.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                "Tidak ada soal tersedia untuk kategori dan tingkat ini!",
-                "Error",
-                JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Tidak ada soal tersedia!", "Error", JOptionPane.ERROR_MESSAGE);
             screenManager.showMainMenu();
             return;
         }
@@ -352,16 +412,11 @@ public class QuizView extends JPanel {
             questions = new ArrayList<>(questions.subList(0, totalQuestionsInSession));
         }
         
-        System.out.println("Loaded " + questions.size() + " questions for quiz session");
-        
         String playerName = screenManager.getPlayerName();
         quizSessionId = db.createSession(playerName, category, difficulty);
         if (quizSessionId == -1) {
             quizActive = false;
-            JOptionPane.showMessageDialog(this,
-                "Gagal membuat sesi permainan. Periksa koneksi database kamu ya!",
-                "Database Error",
-                JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Gagal koneksi database!", "Error", JOptionPane.ERROR_MESSAGE);
             screenManager.showMainMenu();
             return;
         }
@@ -373,10 +428,9 @@ public class QuizView extends JPanel {
         showingCountdown = true;
         countdownNumber = 3;
         countdownOverlay.setVisible(true);
+        setComponentZOrder(countdownOverlay, 0);
         
-        for (JButton btn : optionButtons) {
-            btn.setEnabled(false);
-        }
+        for (JButton btn : optionButtons) btn.setEnabled(false);
         skipButton.setEnabled(false);
         fiftyFiftyButton.setEnabled(false);
         hintButton.setEnabled(false);
@@ -396,10 +450,7 @@ public class QuizView extends JPanel {
                 SwingUtilities.invokeLater(() -> {
                     showingCountdown = false;
                     countdownOverlay.setVisible(false);
-                    
-                    for (JButton btn : optionButtons) {
-                        btn.setEnabled(true);
-                    }
+                    for (JButton btn : optionButtons) btn.setEnabled(true);
                     skipButton.setEnabled(true);
                     fiftyFiftyButton.setEnabled(!fiftyFiftyUsed);
                     hintButton.setEnabled(!hintUsed);
@@ -423,22 +474,58 @@ public class QuizView extends JPanel {
             try {
                 while (quizActive && timeRemaining > 0) {
                     Thread.sleep(1000);
-                    timeRemaining--;
                     
-                    SwingUtilities.invokeLater(() -> {
-                        updateTimerDisplay();
-                    });
+                    if (quizActive) {
+                        timeRemaining--;
+                        SwingUtilities.invokeLater(() -> {
+                            updateTimerDisplay();
+                            updateSpeedBonusDisplay();
+                            repaint();
+                        });
+                    }
                 }
                 
                 if (quizActive) {
-                    SwingUtilities.invokeLater(() -> {
-                        endQuiz();
-                    });
+                    SwingUtilities.invokeLater(() -> endQuiz());
                 }
             } catch (InterruptedException e) {
             }
         });
         timerThread.start();
+    }
+    
+    private void updateSpeedBonusDisplay() {
+        if (questions == null || questions.isEmpty() || currentQuestionIndex >= questions.size()) return;
+
+        int timeSpent = questionStartTime - timeRemaining;
+        int bonusTimeLeft = Math.max(0, MAX_TIME_PER_QUESTION - timeSpent);
+        
+        Database.Question q = questions.get(currentQuestionIndex);
+        int basePoints = 10;
+        String diff = q.difficulty.toUpperCase();
+        if (diff.contains("MEDIUM") || diff.contains("SEDANG")) basePoints = 15;
+        if (diff.contains("HARD") || diff.contains("SULIT")) basePoints = 25;
+
+        int currentPotentialBonus = 0;
+        if (bonusTimeLeft > 0) {
+            double multiplier = (double) bonusTimeLeft / MAX_TIME_PER_QUESTION;
+            currentPotentialBonus = (int) (basePoints * multiplier);
+        }
+
+        if (currentPotentialBonus > 0) {
+            speedBonusLabel.setText("+" + currentPotentialBonus); 
+            speedBonusLabel.setVisible(true);
+            
+            if (bonusTimeLeft > 6) {
+                speedBonusLabel.setForeground(Color.GREEN);
+            } else if (bonusTimeLeft > 3) {
+                speedBonusLabel.setForeground(Constants.NEO_YELLOW);
+            } else {
+                speedBonusLabel.setForeground(Constants.NEO_RED);
+            }
+        } else {
+            speedBonusLabel.setVisible(false);
+        }
     }
     
     private void startPreloadThread() {
@@ -463,14 +550,9 @@ public class QuizView extends JPanel {
     
     private void updateTimerDisplay() {
         timerLabel.setText(String.valueOf(timeRemaining));
-        
-        if (timeRemaining <= 10) {
-            timerLabel.setForeground(Constants.NEO_RED);
-        } else if (timeRemaining <= 30) {
-            timerLabel.setForeground(Constants.NEO_YELLOW);
-        } else {
-            timerLabel.setForeground(Constants.NEO_GREEN);
-        }
+        if (timeRemaining <= 10) timerLabel.setForeground(Constants.NEO_RED);
+        else if (timeRemaining <= 30) timerLabel.setForeground(Constants.NEO_YELLOW);
+        else timerLabel.setForeground(Constants.NEO_GREEN);
     }
     
     private void displayQuestion() {
@@ -480,7 +562,6 @@ public class QuizView extends JPanel {
         }
         
         Database.Question question = questions.get(currentQuestionIndex);
-        
         int total = Math.max(totalQuestionsInSession, questions.size());
         progressLabel.setText("Soal " + (currentQuestionIndex + 1) + " / " + total);
         questionLabel.setText("<html><center>" + question.questionText + "</center></html>");
@@ -503,8 +584,8 @@ public class QuizView extends JPanel {
         fiftyFiftyButton.setEnabled(!fiftyFiftyUsed);
         hintButton.setEnabled(!hintUsed);
         
-        // Track when question was displayed for speed bonus
         questionStartTime = timeRemaining;
+        updateSpeedBonusDisplay();
         
         repaint();
     }
@@ -517,8 +598,7 @@ public class QuizView extends JPanel {
     
     private void advanceToNextQuestion() {
         currentQuestionIndex++;
-        while (questionUsed != null && currentQuestionIndex < totalQuestionsInSession
-                && questionUsed[currentQuestionIndex]) {
+        while (questionUsed != null && currentQuestionIndex < totalQuestionsInSession && questionUsed[currentQuestionIndex]) {
             currentQuestionIndex++;
         }
         if (currentQuestionIndex < questions.size()) {
@@ -540,86 +620,61 @@ public class QuizView extends JPanel {
         if (isCorrect) {
             correctAnswers++;
             
-            // Calculate base points based on difficulty
             int basePoints = 10;
             String diff = question.difficulty.toUpperCase();
-            if (diff.equals("EASY") || diff.equals("MUDAH")) {
-                basePoints = 10;
-            } else if (diff.equals("MEDIUM") || diff.equals("SEDANG")) {
-                basePoints = 15;
-            } else if (diff.equals("HARD") || diff.equals("SULIT")) {
-                basePoints = 25;
-            }
+            if (diff.contains("MEDIUM") || diff.contains("SEDANG")) basePoints = 15;
+            else if (diff.contains("HARD") || diff.contains("SULIT")) basePoints = 25;
             
-            // Calculate speed bonus
             int timeSpent = questionStartTime - timeRemaining;
             int timeLeft = Math.max(0, MAX_TIME_PER_QUESTION - timeSpent);
             double speedMultiplier = timeLeft / (double) MAX_TIME_PER_QUESTION;
             int speedBonus = (int) (basePoints * speedMultiplier);
             totalSpeedBonus += speedBonus;
             
-            int totalPoints = basePoints + speedBonus;
-            score += totalPoints;
+            score += (basePoints + speedBonus);
             scoreLabel.setText("Score: " + score);
         } else {
             incorrectAnswers++;
         }
         
         saveAnswerAsync(question.id, selectedAnswer, isCorrect);
-        
         markQuestionAsUsed(currentQuestionIndex);
         advanceToNextQuestion();
     }
     
     private void handleSkip() {
         if (!quizActive || animatingFiftyFifty) return;
-        
         audioManager.playSFX("assets/click.wav");
-        
         Database.Question question = questions.get(currentQuestionIndex);
         saveAnswerAsync(question.id, "SKIP", false);
-        
         incorrectAnswers++;
-        
         markQuestionAsUsed(currentQuestionIndex);
         advanceToNextQuestion();
     }
     
     private void handleFiftyFifty() {
         if (!quizActive || fiftyFiftyUsed || animatingFiftyFifty) return;
-        
         audioManager.playSFX("assets/click.wav");
         fiftyFiftyUsed = true;
         fiftyFiftyButton.setEnabled(false);
         
         Database.Question question = questions.get(currentQuestionIndex);
         int correctIndex = question.correctAnswer.charAt(0) - 'A';
-        
         List<Integer> incorrectIndices = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
-            if (i != correctIndex) {
-                incorrectIndices.add(i);
-            }
+            if (i != correctIndex) incorrectIndices.add(i);
         }
-        
-        fadingOptions = new int[2];
-        fadingOptions[0] = incorrectIndices.get(0);
-        fadingOptions[1] = incorrectIndices.get(1);
-        
+        fadingOptions = new int[]{incorrectIndices.get(0), incorrectIndices.get(1)};
         startFiftyFiftyAnimation();
     }
     
     private void handleHint() {
         if (!quizActive || hintUsed || animatingFiftyFifty) return;
-        
         audioManager.playSFX("assets/click.wav");
         hintUsed = true;
         hintButton.setEnabled(false);
-        
         Database.Question question = questions.get(currentQuestionIndex);
-        char correctAnswer = question.correctAnswer.charAt(0);
-        
-        int correctIndex = correctAnswer - 'A';
+        int correctIndex = question.correctAnswer.charAt(0) - 'A';
         optionButtons[correctIndex].putClientProperty("isHighlighted", true);
         optionButtons[correctIndex].repaint();
     }
@@ -628,16 +683,13 @@ public class QuizView extends JPanel {
         animatingFiftyFifty = true;
         fadeAlpha = 1.0f;
         
-        if (animationThread != null && animationThread.isAlive()) {
-            animationThread.interrupt();
-        }
+        if (animationThread != null && animationThread.isAlive()) animationThread.interrupt();
         
         animationThread = new Thread(() -> {
             try {
                 while (fadeAlpha > 0) {
                     Thread.sleep(50);
                     fadeAlpha -= 0.05f;
-                    
                     SwingUtilities.invokeLater(() -> {
                         for (int index : fadingOptions) {
                             optionButtons[index].putClientProperty("fadeAlpha", Math.max(0, fadeAlpha));
@@ -645,16 +697,11 @@ public class QuizView extends JPanel {
                         }
                     });
                 }
-                
                 SwingUtilities.invokeLater(() -> {
-                    for (int index : fadingOptions) {
-                        optionButtons[index].setEnabled(false);
-                    }
+                    for (int index : fadingOptions) optionButtons[index].setEnabled(false);
                     animatingFiftyFifty = false;
                 });
-                
-            } catch (InterruptedException e) {
-            }
+            } catch (InterruptedException e) {}
         });
         animationThread.start();
     }
@@ -663,8 +710,7 @@ public class QuizView extends JPanel {
         SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
-                Database db = Database.getInstance();
-                db.saveQuestionAnswer(quizSessionId, questionId, userAnswer, isCorrect);
+                Database.getInstance().saveQuestionAnswer(quizSessionId, questionId, userAnswer, isCorrect);
                 return null;
             }
         };
@@ -673,14 +719,12 @@ public class QuizView extends JPanel {
     
     private void endQuiz() {
         quizActive = false;
-        
         if (timerThread != null) timerThread.interrupt();
         if (preloadThread != null) preloadThread.interrupt();
         if (animationThread != null) animationThread.interrupt();
         
         Database db = Database.getInstance();
         db.updateSession(quizSessionId, score, correctAnswers, incorrectAnswers);
-        
         String playerName = screenManager.getPlayerName();
         int totalQuestions = correctAnswers + incorrectAnswers;
         double accuracy = totalQuestions > 0 ? (correctAnswers * 100.0 / totalQuestions) : 0;
@@ -706,16 +750,10 @@ public class QuizView extends JPanel {
                 Boolean isHighlighted = (Boolean) getClientProperty("isHighlighted");
                 boolean highlighted = isHighlighted != null && isHighlighted;
                 
-                if (!enabled || alpha < 0.1f) {
-                    alpha = 0.3f;
-                }
-                
+                if (!enabled || alpha < 0.1f) alpha = 0.3f;
                 g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha * 0.5f));
                 g2d.setColor(new Color(0, 0, 0, 100));
-                g2d.fillRoundRect(Constants.SHADOW_OFFSET, Constants.SHADOW_OFFSET,
-                    getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET,
-                    Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
-                
+                g2d.fillRoundRect(Constants.SHADOW_OFFSET, Constants.SHADOW_OFFSET, getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET, Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
                 g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
                 
                 Color bgColor = highlighted ? Constants.NEO_ORANGE : Constants.NEO_PINK;
@@ -723,33 +761,21 @@ public class QuizView extends JPanel {
                 Color darkColor = bgColor;
                 
                 if (isHovered && !pressed && enabled) {
-                    lightColor = new Color(
-                        Math.min(255, lightColor.getRed() + 30),
-                        Math.min(255, lightColor.getGreen() + 30),
-                        Math.min(255, lightColor.getBlue() + 30)
-                    );
+                    lightColor = new Color(Math.min(255, lightColor.getRed() + 30), Math.min(255, lightColor.getGreen() + 30), Math.min(255, lightColor.getBlue() + 30));
                     darkColor = bgColor.brighter();
                 }
-                
                 if (pressed) {
                     lightColor = new Color(lightColor.getRed(), lightColor.getGreen(), lightColor.getBlue(), 150);
                     darkColor = new Color(darkColor.getRed(), darkColor.getGreen(), darkColor.getBlue(), 150);
                 }
                 
-                GradientPaint gradient = new GradientPaint(
-                    0, 0, lightColor,
-                    0, getHeight() - Constants.SHADOW_OFFSET, darkColor
-                );
+                GradientPaint gradient = new GradientPaint(0, 0, lightColor, 0, getHeight() - Constants.SHADOW_OFFSET, darkColor);
                 g2d.setPaint(gradient);
-                g2d.fillRoundRect(0, 0,
-                    getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET,
-                    Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
+                g2d.fillRoundRect(0, 0, getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET, Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
                 
                 int highlightAlpha = pressed ? 40 : 80;
                 g2d.setColor(new Color(255, 255, 255, highlightAlpha));
-                g2d.fillRoundRect(5, 5,
-                    getWidth() - Constants.SHADOW_OFFSET - 10, (getHeight() - Constants.SHADOW_OFFSET) / 2 - 5,
-                    Constants.BORDER_RADIUS - 5, Constants.BORDER_RADIUS - 5);
+                g2d.fillRoundRect(5, 5, getWidth() - Constants.SHADOW_OFFSET - 10, (getHeight() - Constants.SHADOW_OFFSET) / 2 - 5, Constants.BORDER_RADIUS - 5, Constants.BORDER_RADIUS - 5);
                 
                 int outlineAlpha = pressed ? 150 : 255;
                 if (highlighted) {
@@ -759,9 +785,7 @@ public class QuizView extends JPanel {
                     g2d.setColor(new Color(255, 255, 255, outlineAlpha));
                     g2d.setStroke(new BasicStroke(Constants.BORDER_THICKNESS));
                 }
-                g2d.drawRoundRect(0, 0,
-                    getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET,
-                    Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
+                g2d.drawRoundRect(0, 0, getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET, Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
                 
                 g2d.setFont(getFont());
                 FontMetrics fm = g2d.getFontMetrics();
@@ -771,36 +795,23 @@ public class QuizView extends JPanel {
                 int textShadowAlpha = pressed ? 50 : 100;
                 g2d.setColor(new Color(0, 0, 0, textShadowAlpha));
                 g2d.drawString(getText(), x + 2, y + 2);
-                
                 int textAlpha = pressed ? 180 : 255;
                 g2d.setColor(new Color(255, 255, 255, textAlpha));
                 g2d.drawString(getText(), x, y);
-                
                 g2d.dispose();
             }
         };
-        
         button.setFont(new Font("Arial", Font.BOLD, 18));
         button.setForeground(Color.WHITE);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setContentAreaFilled(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
         button.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseEntered(MouseEvent e) {
-                if (button.isEnabled()) {
-                    button.putClientProperty("isHovered", true);
-                    button.repaint();
-                }
-            }
-            
+            public void mouseEntered(MouseEvent e) { if (button.isEnabled()) { button.putClientProperty("isHovered", true); button.repaint(); } }
             @Override
-            public void mouseExited(MouseEvent e) {
-                button.putClientProperty("isHovered", false);
-                button.repaint();
-            }
+            public void mouseExited(MouseEvent e) { button.putClientProperty("isHovered", false); button.repaint(); }
         });
         
         return button;
@@ -813,95 +824,62 @@ public class QuizView extends JPanel {
                 Graphics2D g2d = (Graphics2D) g.create();
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-                
+
                 boolean pressed = getModel().isPressed();
                 boolean enabled = isEnabled();
                 Boolean isHoveredObj = (Boolean) getClientProperty("isHovered");
                 boolean isHovered = isHoveredObj != null && isHoveredObj;
-                
+
                 float alpha = enabled ? 1.0f : 0.4f;
                 g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
                 
                 g2d.setColor(new Color(0, 0, 0, 100));
-                g2d.fillRoundRect(Constants.SHADOW_OFFSET, Constants.SHADOW_OFFSET,
-                    getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET,
-                    Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
-                
+                g2d.fillRoundRect(Constants.SHADOW_OFFSET, Constants.SHADOW_OFFSET, getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET, Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
                 Color lightColor = bgColor.brighter();
                 Color darkColor = bgColor;
-                
-                if (isHovered && !pressed && enabled) {
-                    lightColor = new Color(
-                        Math.min(255, lightColor.getRed() + 30),
-                        Math.min(255, lightColor.getGreen() + 30),
-                        Math.min(255, lightColor.getBlue() + 30)
-                    );
-                    darkColor = bgColor.brighter();
-                }
-                
-                GradientPaint gradient = new GradientPaint(
-                    0, 0, lightColor,
-                    0, getHeight() - Constants.SHADOW_OFFSET, darkColor
-                );
+                if (isHovered && !pressed && enabled) { lightColor = new Color(Math.min(255, lightColor.getRed() + 30), Math.min(255, lightColor.getGreen() + 30), Math.min(255, lightColor.getBlue() + 30)); darkColor = bgColor.brighter(); }
+                if (pressed) { lightColor = new Color(lightColor.getRed(), lightColor.getGreen(), lightColor.getBlue(), 150); darkColor = new Color(darkColor.getRed(), darkColor.getGreen(), darkColor.getBlue(), 150); }
+                GradientPaint gradient = new GradientPaint(0, 0, lightColor, 0, getHeight() - Constants.SHADOW_OFFSET, darkColor);
                 g2d.setPaint(gradient);
-                g2d.fillRoundRect(0, 0,
-                    getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET,
-                    Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
-                
+                g2d.fillRoundRect(0, 0, getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET, Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
                 int highlightAlpha = pressed ? 40 : 80;
                 g2d.setColor(new Color(255, 255, 255, highlightAlpha));
-                g2d.fillRoundRect(5, 5,
-                    getWidth() - Constants.SHADOW_OFFSET - 10, (getHeight() - Constants.SHADOW_OFFSET) / 2 - 5,
-                    Constants.BORDER_RADIUS - 5, Constants.BORDER_RADIUS - 5);
-                
+                g2d.fillRoundRect(5, 5, getWidth() - Constants.SHADOW_OFFSET - 10, (getHeight() - Constants.SHADOW_OFFSET) / 2 - 5, Constants.BORDER_RADIUS - 5, Constants.BORDER_RADIUS - 5);
                 int outlineAlpha = pressed ? 150 : 255;
                 g2d.setColor(new Color(255, 255, 255, outlineAlpha));
                 g2d.setStroke(new BasicStroke(Constants.BORDER_THICKNESS));
-                g2d.drawRoundRect(0, 0,
-                    getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET,
-                    Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
-                
+                g2d.drawRoundRect(0, 0, getWidth() - Constants.SHADOW_OFFSET, getHeight() - Constants.SHADOW_OFFSET, Constants.BORDER_RADIUS, Constants.BORDER_RADIUS);
                 g2d.setFont(getFont());
                 FontMetrics fm = g2d.getFontMetrics();
                 int x = (getWidth() - Constants.SHADOW_OFFSET - fm.stringWidth(getText())) / 2;
                 int y = ((getHeight() - Constants.SHADOW_OFFSET - fm.getHeight()) / 2) + fm.getAscent();
-                
+
                 int textShadowAlpha = pressed ? 50 : 100;
                 g2d.setColor(new Color(0, 0, 0, textShadowAlpha));
                 g2d.drawString(getText(), x + 2, y + 2);
-                
+
                 int textAlpha = enabled ? (pressed ? 180 : 255) : 180;
                 g2d.setColor(new Color(255, 255, 255, textAlpha));
                 g2d.drawString(getText(), x, y);
-                
+
                 g2d.dispose();
             }
         };
-        
+
         button.setFont(new Font("Arial Black", Font.BOLD, 15));
         button.setForeground(Color.WHITE);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setContentAreaFilled(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
+
         button.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseEntered(MouseEvent e) {
-                if (button.isEnabled()) {
-                    button.putClientProperty("isHovered", true);
-                    button.repaint();
-                }
-            }
-            
+            public void mouseEntered(MouseEvent e) { if (button.isEnabled()) { button.putClientProperty("isHovered", true); button.repaint(); } }
             @Override
-            public void mouseExited(MouseEvent e) {
-                button.putClientProperty("isHovered", false);
-                button.repaint();
-            }
+            public void mouseExited(MouseEvent e) { button.putClientProperty("isHovered", false); button.repaint(); }
         });
-        
+
         return button;
     }
 }
-
